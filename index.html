@@ -38,91 +38,90 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 /* ── APP SHELL ─────────────────────────────────────────────────────────── */
 #app{
   display:flex;
-  flex-direction:column;
+  flex-direction:row; /* ALWAYS row — sidebar on left */
   height:100%;
-  /* account for notch/dynamic island */
-  padding-top:var(--safe-top);
   max-width:1400px;
   margin:0 auto;
   position:relative;
 }
+/* topbar hidden — sidebar replaces it on all breakpoints */
+#topbar{display:none!important}
 
-/* ── TOP BAR (mobile) ───────────────────────────────────────────────────── */
-#topbar{
-  display:flex;align-items:center;gap:12px;
-  padding:14px 18px;
-  background:rgba(17,16,8,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border-bottom:1px solid var(--border);flex-shrink:0;z-index:50;
+/* ── LEFT SIDEBAR (mobile: icon-only strip) ──────────────────────────── */
+#bottom-nav{
+  display:flex;flex-direction:column;
+  justify-content:flex-start;align-items:center;
+  /* narrow icon-only on mobile */
+  width:58px;
+  flex-shrink:0;
+  border-right:1px solid var(--border);border-top:none;
+  /* safe areas for notch/home bar */
+  padding:calc(var(--safe-top) + 10px) 4px calc(var(--safe-bottom) + 10px);
+  gap:2px;
+  overflow-y:auto;overflow-x:hidden;
+  background:rgba(17,16,8,.97);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  z-index:50;
 }
-.logo{font-family:'Fraunces',serif;font-weight:700;font-size:1.25rem;color:var(--amber);white-space:nowrap;display:flex;align-items:center;gap:6px}
-.logo-sub{font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--teal);letter-spacing:.12em;text-transform:uppercase;vertical-align:super;margin-left:2px}
-.topbar-stats{display:flex;gap:8px;margin-left:auto;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-.ts{font-family:'JetBrains Mono',monospace;font-size:.68rem;padding:4px 9px;border-radius:20px;border:1px solid var(--border);color:var(--text2)}
-.ts.red{border-color:var(--coral);color:var(--coral);background:var(--coral-dim)}
-.ts.amber{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+/* logo: icon-only on mobile */
+.logo-desktop{
+  display:flex;flex-direction:column;align-items:center;
+  padding:6px 0 14px;border-bottom:1px solid var(--border);
+  margin-bottom:8px;width:100%;text-align:center;
+  font-family:'Fraunces',serif;font-weight:700;color:var(--amber);
+  font-size:1.25rem;line-height:1;
+}
+.logo-desktop .logo-wordmark{display:none} /* hidden on mobile */
+.logo-desktop .logo-icon{display:block;font-size:1.4rem}
+
+/* nav buttons: icon only on mobile */
+.nav-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  padding:10px 4px;border-radius:10px;cursor:pointer;
+  color:var(--text3);border:none;background:none;
+  transition:color .18s,background .18s;
+  position:relative;min-width:0;width:100%;
+  min-height:48px;
+}
+.nav-btn .nav-icon{font-size:1.35rem;line-height:1;display:block;transition:transform .2s}
+.nav-btn .nav-lbl{display:none} /* labels hidden on mobile */
+.nav-btn.active{color:var(--amber)}
+.nav-btn.active .nav-icon{transform:scale(1.1)}
+.nav-badge{
+  position:absolute;top:5px;right:3px;
+  background:var(--coral);color:#fff;border-radius:10px;
+  font-size:.5rem;padding:1px 4px;font-family:'JetBrains Mono',monospace;min-width:14px;text-align:center;
+}
+
+/* ai dot in sidebar */
 .ai-dot{width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0}
 .ai-dot.on{background:var(--sage);box-shadow:0 0 6px var(--sage)}
-#install-btn{display:none;padding:5px 12px;background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);border-radius:7px;font-size:.75rem;font-family:'Outfit',sans-serif;cursor:pointer;font-weight:600}
-
-/* ── BOTTOM NAV (mobile) ─────────────────────────────────────────────── */
-#bottom-nav{
-  display:flex;align-items:stretch;justify-content:space-around;
-  background:rgba(17,16,8,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border-top:1px solid var(--border);
-  /* extra padding for home indicator */
-  padding:6px 0 calc(10px + var(--safe-bottom));
-  flex-shrink:0;z-index:50;
-}
-.nav-btn{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  padding:6px 4px;border-radius:10px;cursor:pointer;
-  color:var(--text3);font-size:.6rem;font-weight:600;font-family:'Outfit',sans-serif;
-  letter-spacing:.03em;text-transform:uppercase;border:none;background:none;
-  transition:color .18s;flex:1;position:relative;min-width:0;
-  /* large touch targets */
-  min-height:52px;
-}
-.nav-btn .nav-icon{font-size:1.3rem;line-height:1;transition:transform .2s;display:block}
-.nav-btn.active{color:var(--amber)}
-.nav-btn.active .nav-icon{transform:translateY(-2px)}
-.nav-badge{
-  position:absolute;top:4px;right:calc(50% - 20px);
-  background:var(--coral);color:#fff;border-radius:10px;
-  font-size:.52rem;padding:2px 5px;font-family:'JetBrains Mono',monospace;min-width:16px;text-align:center;
-}
+.nav-bottom-area{margin-top:auto;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
 
 /* ── MAIN CONTENT ──────────────────────────────────────────────────────── */
 #content{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;-webkit-overflow-scrolling:touch}
-.page{display:none;min-height:100%;padding:16px 14px 24px;}
+.page{display:none;min-height:100%;padding:16px 14px 24px}
 .page.active{display:block}
 
-/* ── DESKTOP LAYOUT (768px+) ─────────────────────────────────────────── */
-@media(min-width:768px){
-  #app{flex-direction:row;padding-top:0}
-  #topbar{display:none}
+/* ── TABLET/DESKTOP (640px+): full sidebar with labels ───────────────── */
+@media(min-width:640px){
   #bottom-nav{
-    flex-direction:column;justify-content:flex-start;align-items:stretch;
-    width:210px;border-top:none;border-right:1px solid var(--border);
-    padding:20px 10px 20px;gap:2px;flex-shrink:0;
+    width:200px;align-items:stretch;
+    padding:20px 10px 20px;
   }
-  .nav-btn{
-    flex-direction:row;justify-content:flex-start;gap:10px;
-    padding:11px 14px;font-size:.75rem;flex:0;min-height:auto;
-  }
-  .nav-btn .nav-icon{font-size:1rem}
-  .nav-btn.active{background:var(--amber-dim);border-radius:8px}
   .logo-desktop{
-    font-family:'Fraunces',serif;font-weight:700;font-size:1.15rem;color:var(--amber);
-    padding:12px 14px 20px;border-bottom:1px solid var(--border);margin-bottom:8px;
+    flex-direction:row;justify-content:flex-start;gap:6px;
+    padding:10px 12px 18px;font-size:1.1rem;
   }
-  .logo-desktop span{font-family:'JetBrains Mono',monospace;font-size:.5rem;color:var(--teal);letter-spacing:.12em;text-transform:uppercase;vertical-align:super;margin-left:2px}
-  #content{flex:1;overflow-y:auto}
+  .logo-desktop .logo-wordmark{display:inline}
+  .logo-desktop .logo-wordmark span{font-family:'JetBrains Mono',monospace;font-size:.5rem;color:var(--teal);letter-spacing:.12em;text-transform:uppercase;vertical-align:super;margin-left:2px}
+  .logo-desktop .logo-icon{display:none}
+  .nav-btn{flex-direction:row;justify-content:flex-start;gap:10px;padding:10px 12px;min-height:auto;border-radius:8px}
+  .nav-btn .nav-icon{font-size:.95rem}
+  .nav-btn .nav-lbl{display:inline;font-family:'Outfit',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+  .nav-btn.active{background:var(--amber-dim)}
+  .nav-bottom-area{align-items:stretch}
   .page{padding:24px 28px 32px}
-  .nav-bottom-area{margin-top:auto;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
-  #install-btn{display:none!important}
-}
-@media(max-width:767px){
-  .logo-desktop,.nav-bottom-area{display:none}
 }
 
 /* ── TYPOGRAPHY ────────────────────────────────────────────────────────── */
@@ -434,21 +433,24 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
 <body>
 <div id="app">
 
-<!-- ── DESKTOP SIDEBAR ──────────────────────────────────────────────────── -->
+<!-- ── LEFT SIDEBAR (all breakpoints) ───────────────────────────────── -->
 <nav id="bottom-nav">
-  <div class="logo-desktop">TaskFlow<span>AI</span></div>
-  <button class="nav-btn active" onclick="go('tasks')" id="nb-tasks"><span class="nav-icon">📋</span>Tasks</button>
-  <button class="nav-btn" onclick="go('capture')" id="nb-capture"><span class="nav-icon">⚡</span>Capture</button>
-  <button class="nav-btn" onclick="go('habits')" id="nb-habits"><span class="nav-icon">🌱</span>Habits</button>
-  <button class="nav-btn" onclick="go('focus')" id="nb-focus"><span class="nav-icon">🍅</span>Focus</button>
-  <button class="nav-btn" onclick="go('messages')" id="nb-messages"><span class="nav-icon">💬</span>Messages<span class="nav-badge" id="reply-badge" style="display:none">0</span></button>
-  <button class="nav-btn" onclick="go('goals')" id="nb-goals"><span class="nav-icon">🎯</span>Goals</button>
-  <button class="nav-btn" onclick="go('insights')" id="nb-insights"><span class="nav-icon">📊</span>Insights</button>
+  <div class="logo-desktop">
+    <span class="logo-icon">✦</span>
+    <span class="logo-wordmark">TaskFlow<span>AI</span></span>
+  </div>
+  <button class="nav-btn active" onclick="go('tasks')" id="nb-tasks"><span class="nav-icon">📋</span><span class="nav-lbl">Tasks</span></button>
+  <button class="nav-btn" onclick="go('capture')" id="nb-capture"><span class="nav-icon">⚡</span><span class="nav-lbl">Capture</span></button>
+  <button class="nav-btn" onclick="go('habits')" id="nb-habits"><span class="nav-icon">🌱</span><span class="nav-lbl">Habits</span></button>
+  <button class="nav-btn" onclick="go('focus')" id="nb-focus"><span class="nav-icon">🍅</span><span class="nav-lbl">Focus</span></button>
+  <button class="nav-btn" onclick="go('messages')" id="nb-messages"><span class="nav-icon">💬</span><span class="nav-lbl">Messages</span><span class="nav-badge" id="reply-badge" style="display:none">0</span></button>
+  <button class="nav-btn" onclick="go('goals')" id="nb-goals"><span class="nav-icon">🎯</span><span class="nav-lbl">Goals</span></button>
+  <button class="nav-btn" onclick="go('insights')" id="nb-insights"><span class="nav-icon">📊</span><span class="nav-lbl">Insights</span></button>
   <div class="nav-bottom-area">
-    <button class="nav-btn" onclick="go('settings')" id="nb-settings"><span class="nav-icon">⚙️</span>Settings</button>
-    <div style="display:flex;align-items:center;gap:6px;padding:6px 12px">
+    <button class="nav-btn" onclick="go('settings')" id="nb-settings"><span class="nav-icon">⚙️</span><span class="nav-lbl">Settings</span></button>
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;justify-content:center">
       <span class="ai-dot" id="ai-dot2"></span>
-      <span style="font-size:.62rem;color:var(--text3);font-family:'JetBrains Mono',monospace">AI</span>
+      <span class="nav-lbl" style="font-size:.58rem;color:var(--text3);font-family:'JetBrains Mono',monospace">AI</span>
     </div>
   </div>
 </nav>
@@ -552,32 +554,37 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
 
 <!-- ════════════ CAPTURE ════════════ -->
 <div class="page" id="page-capture">
-  <div class="page-hdr"><h1>⚡ AI Capture</h1><p>Brain-dump anything. AI structures it into implementation intentions.</p></div>
+  <div class="page-hdr"><h1>⚡ AI Capture</h1><p>Brain-dump anything. AI structures tasks <em>and</em> suggests habits.</p></div>
   <div class="card" style="margin-bottom:14px">
     <div class="section-label">💡 Quick Idea</div>
     <div style="display:flex;gap:8px">
       <input id="quick-input" placeholder="e.g. reply to Dr. Chen about collaboration, set up experiment this week" onkeydown="if(event.key==='Enter')quickCapture()" style="flex:1"/>
       <button class="btn btn-ai" onclick="quickCapture()" id="quick-btn">🤖 Parse</button>
     </div>
-    <p style="font-size:.7rem;color:var(--text3);margin-top:6px">AI assigns project, due date, and creates an implementation intention from your goals.</p>
+    <p style="font-size:.74rem;color:var(--text3);margin-top:6px">AI assigns project, due date, and creates an implementation intention from your goals.</p>
   </div>
   <div class="card" style="margin-bottom:14px">
     <div class="section-label">🧠 Brain Dump</div>
-    <textarea id="brain-dump" style="min-height:180px;font-size:.84rem;line-height:1.7" placeholder="Dump everything here…&#10;&#10;• Need to finish the methods section&#10;• Email advisor about committee meeting&#10;• Fix auth bug in dashboard&#10;• Order groceries&#10;• Read Johnson et al. anammox paper&#10;&#10;AI will turn this into organized tasks with implementation intentions."></textarea>
+    <textarea id="brain-dump" style="min-height:160px;line-height:1.7" placeholder="Dump everything here…&#10;&#10;• Need to finish the methods section&#10;• Email advisor about committee meeting&#10;• Fix auth bug in dashboard&#10;• Try to meditate before meetings&#10;• Order groceries&#10;&#10;AI will extract tasks AND suggest habits."></textarea>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('brain-dump').value=''">Clear</button>
       <button class="btn btn-ai" onclick="brainDump()" id="dump-btn">🤖 Organize with AI</button>
     </div>
   </div>
   <div id="capture-results" style="display:none">
-    <div class="sec-hdr">
-      <h2 style="font-size:.95rem;color:var(--teal)">✨ Review AI Results</h2>
+    <div class="sec-hdr" style="margin-bottom:0">
+      <h2 style="font-size:.95rem;color:var(--teal)">✨ Review &amp; Edit AI Results</h2>
       <div style="display:flex;gap:7px">
         <button class="btn btn-ghost btn-sm" onclick="dismissCapture()">Dismiss</button>
         <button class="btn btn-primary btn-sm" onclick="addAllCaptured()">Add All ✓</button>
       </div>
     </div>
-    <div id="capture-list"></div>
+    <div style="display:flex;gap:6px;margin:12px 0 14px">
+      <button class="chip active" onclick="showCaptureTab('tasks',this)" id="cap-tab-tasks">📋 Tasks (<span id="cap-task-count">0</span>)</button>
+      <button class="chip" onclick="showCaptureTab('habits',this)" id="cap-tab-habits">🌱 Habits (<span id="cap-habit-count">0</span>)</button>
+    </div>
+    <div id="capture-list-tasks"></div>
+    <div id="capture-list-habits" style="display:none"></div>
   </div>
 </div>
 
@@ -693,30 +700,57 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
 <div class="page" id="page-messages">
   <div class="two-col">
     <div>
+      <!-- Slack -->
       <div class="card" style="margin-bottom:14px">
-        <div class="section-label">📥 Import Messages</div>
+        <div class="section-label">💜 Connect Slack</div>
+        <div class="fg"><label>Slack Bot/User Token</label><input id="slack-token" type="password" placeholder="xoxb-… or xoxp-…" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
+        <button class="btn btn-full" style="background:#4a154b;color:#fff;margin-bottom:8px" onclick="saveSlackToken()">Save &amp; Fetch Slack</button>
+        <div id="slack-status" style="font-size:.72rem;color:var(--text3);line-height:1.5">
+          Get a token at <a href="https://api.slack.com/apps" target="_blank" style="color:var(--teal)">api.slack.com/apps</a> → Create App → OAuth &amp; Permissions → Bot Token Scopes: <code style="font-size:.68rem">channels:history, channels:read, users:read</code> → Install to workspace.
+        </div>
+        <div id="slack-channels" style="margin-top:10px;display:none">
+          <label style="font-size:.78rem;color:var(--text2);font-weight:500">Channels to monitor</label>
+          <div id="slack-channel-list" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px"></div>
+          <button class="btn btn-teal btn-sm btn-full" style="margin-top:10px" onclick="fetchSlackMessages()">🔄 Fetch New Messages</button>
+        </div>
+      </div>
+      <!-- Discord -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="section-label">🎮 Connect Discord</div>
+        <div class="fg"><label>Discord Bot Token</label><input id="discord-token" type="password" placeholder="Your bot token" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
+        <div class="fg"><label>Channel ID(s) to monitor <span style="color:var(--text3)">(comma-separated)</span></label><input id="discord-channels-input" placeholder="1234567890, 9876543210"/></div>
+        <button class="btn btn-full" style="background:#5865F2;color:#fff;margin-bottom:8px" onclick="saveDiscordToken()">Save &amp; Fetch Discord</button>
+        <div style="font-size:.72rem;color:var(--text3);line-height:1.5">
+          <a href="https://discord.com/developers/applications" target="_blank" style="color:var(--teal)">discord.com/developers</a> → New Application → Bot → Reset Token. Enable: Message Content Intent. Add bot to server with <code style="font-size:.68rem">Read Message History</code> permission.
+        </div>
+      </div>
+      <!-- Gmail -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="section-label">📧 Connect Gmail</div>
+        <div class="fg"><label>Gmail OAuth Client ID</label><input id="gmail-client-id" placeholder="your-id.apps.googleusercontent.com" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
+        <button class="btn btn-teal btn-full" onclick="connectGmail()" id="gmail-btn">Connect Gmail</button>
+        <p style="font-size:.7rem;color:var(--text3);margin-top:8px;line-height:1.5">Get a free Client ID at <a href="https://console.cloud.google.com" target="_blank" style="color:var(--teal)">console.cloud.google.com</a> → APIs → Gmail API → OAuth (Web app). Set redirect URI to this page's URL.</p>
+        <div id="gmail-status" style="margin-top:8px;font-size:.72rem;color:var(--sage);display:none">✓ Gmail connected</div>
+      </div>
+      <!-- Paste fallback -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="section-label">📋 Paste Messages</div>
         <div class="fg"><label>Platform</label>
           <select id="msg-platform">
             <option value="discord">Discord</option>
             <option value="slack">Slack</option>
-            <option value="gmail">Gmail (paste)</option>
+            <option value="gmail">Gmail</option>
           </select>
         </div>
         <div class="fg"><label>Your name/handle</label><input id="msg-username" placeholder="@daniella"/></div>
         <div class="fg"><label>Paste messages</label>
-          <textarea id="msg-paste" style="min-height:140px;font-family:'JetBrains Mono',monospace;font-size:.72rem" placeholder="[10:34 AM] john: @daniella can you review the PR by Friday?&#10;[10:40 AM] sarah: @daniella the demo is moved to Thursday&#10;[11:01 AM] mike: @daniella please update the experiment log"></textarea>
+          <textarea id="msg-paste" style="min-height:100px;font-family:'JetBrains Mono',monospace;font-size:.75rem" placeholder="[10:34 AM] john: @daniella can you review the PR by Friday?"></textarea>
         </div>
         <button class="btn btn-ai btn-full" onclick="parseMessages()" id="msg-parse-btn">🤖 Extract Tasks &amp; Reminders</button>
       </div>
+      <!-- Reply settings -->
       <div class="card">
-        <div class="section-label">📧 Connect Gmail</div>
-        <div class="fg"><label>Gmail OAuth Client ID</label><input id="gmail-client-id" placeholder="your-id.apps.googleusercontent.com" style="font-family:'JetBrains Mono',monospace;font-size:.72rem"/></div>
-        <button class="btn btn-teal btn-full" onclick="connectGmail()" id="gmail-btn">Connect Gmail</button>
-        <p style="font-size:.68rem;color:var(--text3);margin-top:8px;line-height:1.5">Get a free Client ID at <a href="https://console.cloud.google.com" target="_blank" style="color:var(--teal)">console.cloud.google.com</a> → APIs → Gmail API → OAuth credentials (Web app). Set redirect URI to this page's URL.</p>
-        <div id="gmail-status" style="margin-top:8px;font-size:.72rem;color:var(--sage);display:none">✓ Gmail connected</div>
-      </div>
-      <div class="card">
-        <div class="section-label">⏰ Reply Settings</div>
+        <div class="section-label">⏰ Reply Reminders</div>
         <div class="fg"><label>Remind after</label>
           <select id="reply-timeout"><option value="30">30 min</option><option value="60" selected>1 hour</option><option value="180">3 hours</option><option value="480">8 hours</option></select>
         </div>
@@ -726,13 +760,14 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
     <div>
       <div class="sec-hdr">
         <h2>Message Inbox</h2>
-        <div class="chips">
-          <button class="chip active" onclick="setMsgF('all',this)">All</button>
-          <button class="chip" onclick="setMsgF('reply',this)">Needs Reply</button>
-          <button class="chip" onclick="setMsgF('discord',this)">Discord</button>
-          <button class="chip" onclick="setMsgF('slack',this)">Slack</button>
-          <button class="chip" onclick="setMsgF('gmail',this)">Gmail</button>
-        </div>
+        <button class="btn btn-teal btn-sm" onclick="refreshAllMessages()">🔄 Refresh All</button>
+      </div>
+      <div class="chips" style="margin-bottom:14px">
+        <button class="chip active" onclick="setMsgF('all',this)">All</button>
+        <button class="chip" onclick="setMsgF('reply',this)">Needs Reply</button>
+        <button class="chip" onclick="setMsgF('discord',this)">Discord</button>
+        <button class="chip" onclick="setMsgF('slack',this)">Slack</button>
+        <button class="chip" onclick="setMsgF('gmail',this)">Gmail</button>
       </div>
       <div id="msg-list"></div>
     </div>
@@ -809,6 +844,31 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
       <button class="btn btn-ghost" onclick="saveSettings()">Save Profile</button>
     </div>
     <div class="card">
+      <div class="section-label">☁️ Cross-Device Sync</div>
+      <p style="font-size:.78rem;color:var(--text2);margin-bottom:12px;line-height:1.6">Save your data to the cloud so you can access it on your phone <em>and</em> computer. Free, no account needed.</p>
+      <div id="sync-status-box" style="padding:10px 12px;border-radius:8px;background:var(--s2);border:1px solid var(--border);font-size:.78rem;margin-bottom:12px">
+        <span id="sync-status-text" style="color:var(--text3)">Not synced yet</span>
+      </div>
+      <div class="fg"><label>Your Sync Code <span style="color:var(--text3)">(paste this on other devices)</span></label>
+        <div style="display:flex;gap:8px">
+          <input id="sync-code-input" placeholder="e.g. 507f1f77bcf86cd799439011" style="font-family:'JetBrains Mono',monospace;font-size:.75rem;flex:1" readonly/>
+          <button class="btn btn-ghost btn-sm" onclick="copySyncCode()">Copy</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="btn btn-primary" onclick="syncCreate()" id="sync-create-btn">☁️ Create Cloud Profile</button>
+        <button class="btn btn-teal btn-sm" onclick="syncPush()" id="sync-push-btn" style="display:none">⬆️ Push</button>
+        <button class="btn btn-ghost btn-sm" onclick="syncPull()" id="sync-pull-btn" style="display:none">⬇️ Pull Latest</button>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
+        <div style="font-size:.74rem;color:var(--text3);margin-bottom:8px">Already have a sync code from another device?</div>
+        <div style="display:flex;gap:8px">
+          <input id="sync-import-input" placeholder="Paste your sync code here" style="font-family:'JetBrains Mono',monospace;font-size:.75rem;flex:1"/>
+          <button class="btn btn-ghost btn-sm" onclick="syncImport()">Import</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
       <div class="section-label">🔔 Notifications</div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
         <div><div style="font-weight:600;font-size:.86rem">Browser reminders</div><div style="font-size:.72rem;color:var(--text3)">Task due &amp; reply reminders</div></div>
@@ -854,8 +914,17 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
 let S = {
   tasks:[],goals:[],habits:[],habitLogs:{},messages:[],
   distractions:[],focusSessions:[],
-  settings:{apiKey:'',name:'',roles:'',briefTime:'07:00',notif:false,gmailToken:'',gmailClientId:''},
-  ui:{priority:'med',filterCat:'all',filterGoal:'all',sortMode:'due',msgFilter:'all',capturedTasks:[],pomoMode:'work',pomoRunning:false,pomoSecs:1500,pomoTotal:1500,pomoCount:0,pomoDayTotal:0,pomoInterval:null,affectPicked:'',currentTab:'tasks'}
+  settings:{
+    apiKey:'',name:'',roles:'',briefTime:'07:00',notif:false,
+    gmailToken:'',gmailClientId:'',
+    slackToken:'',slackChannels:[],
+    discordToken:'',discordChannelIds:'',
+    syncId:''
+  },
+  ui:{priority:'med',filterCat:'all',filterGoal:'all',sortMode:'due',msgFilter:'all',
+    capturedTasks:[],capturedHabits:[],
+    pomoMode:'work',pomoRunning:false,pomoSecs:1500,pomoTotal:1500,pomoCount:0,pomoDayTotal:0,pomoInterval:null,
+    affectPicked:'',currentTab:'tasks'}
 };
 
 function load(){try{const d=localStorage.getItem('tf_v3');if(d){const p=JSON.parse(d);S={...S,...p,ui:{...S.ui,...(p.ui||{})}}}}catch(e){}}
@@ -1047,9 +1116,12 @@ async function quickCapture(){
   const input=$('quick-input').value.trim();if(!input)return;
   const btn=$('quick-btn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Parsing…';
   try{
-    const sys=`Return ONLY JSON array of 1-3 tasks. Each: {"title":"","cat":"research|startup|personal|admin","goalId":"id or null","project":"or null","priority":"low|med|high","dueISO":"or null","note":"or null","implIntention":"When [situation], I will [action] — implementation intention"}\nUser: ${userCtx()}\nGoals:\n${goalsCtx()}`;
+    const sys=`Return ONLY JSON object: {"tasks":[...],"habits":[]}\ntasks: 1-3 items: {"title":"","cat":"research|startup|personal|admin","goalId":"id or null","project":"or null","priority":"low|med|high","dueISO":"or null","note":"or null","implIntention":"When [situation], I will [action]"}\nhabits: 0-2 recurring patterns found: {"name":"","identity":"I am a person who…","cat":"research|health|mindset|startup|personal","stack":"after…","time":"HH:MM or null"}\nUser: ${userCtx()}\nGoals:\n${goalsCtx()}`;
     const raw=await ai(sys,`Idea: "${input}"\nToday: ${todayDateStr()}`);
-    S.ui.capturedTasks=parseJSON(raw);showCaptureResults(S.ui.capturedTasks);
+    const parsed=parseJSON(raw);
+    S.ui.capturedTasks=Array.isArray(parsed)?parsed:(parsed.tasks||[]);
+    S.ui.capturedHabits=Array.isArray(parsed)?[]:(parsed.habits||[]);
+    showCaptureResults();
     $('quick-input').value='';go('capture');
   }catch(e){toast('AI: '+e.message)}
   btn.disabled=false;btn.innerHTML='🤖 Parse';
@@ -1059,55 +1131,122 @@ async function brainDump(){
   const text=$('brain-dump').value.trim();if(!text){toast('Write something first');return}
   const btn=$('dump-btn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Organizing…';
   try{
-    const sys=`Extract ALL actionable tasks from the brain dump. Return ONLY JSON array. Each: {"title":"","cat":"research|startup|personal|admin","goalId":"id or null","project":"or null","priority":"low|med|high","dueISO":"or null","note":"or null","implIntention":"When [specific situation], I will [specific action]"}\nUser: ${userCtx()}\nGoals:\n${goalsCtx()}\nBe thorough — extract every actionable item.`;
+    const sys=`Extract items from the brain dump. Return ONLY JSON: {"tasks":[...],"habits":[]}\ntasks: ALL actionable one-time items: {"title":"","cat":"research|startup|personal|admin","goalId":"id or null","project":"or null","priority":"low|med|high","dueISO":"or null","note":"or null","implIntention":"When [specific situation], I will [specific action]"}\nhabits: recurring behavior patterns (exercise, meditate, write daily, etc.): {"name":"","identity":"I am a person who…","cat":"research|health|mindset|startup|personal","stack":"after…","time":"HH:MM or null"}\nBe thorough — extract EVERY actionable item.\nUser: ${userCtx()}\nGoals:\n${goalsCtx()}`;
     const raw=await ai(sys,`Brain dump:\n${text}\nToday: ${todayDateStr()}`);
-    S.ui.capturedTasks=parseJSON(raw);showCaptureResults(S.ui.capturedTasks);
+    const parsed=parseJSON(raw);
+    S.ui.capturedTasks=Array.isArray(parsed)?parsed:(parsed.tasks||[]);
+    S.ui.capturedHabits=Array.isArray(parsed)?[]:(parsed.habits||[]);
+    showCaptureResults();
   }catch(e){toast('AI: '+e.message)}
   btn.disabled=false;btn.innerHTML='🤖 Organize with AI';
 }
 
-function showCaptureResults(tasks){
-  const cont=$('capture-list');cont.innerHTML='';
+function showCaptureTab(type,el){
+  document.querySelectorAll('#capture-results .chips .chip').forEach(c=>c.classList.remove('active'));
+  if(el)el.classList.add('active');
+  $('capture-list-tasks').style.display=type==='tasks'?'block':'none';
+  $('capture-list-habits').style.display=type==='habits'?'block':'none';
+}
+
+function showCaptureResults(){
+  const tasks=S.ui.capturedTasks||[];
+  const habits=S.ui.capturedHabits||[];
+  const tcEl=$('cap-task-count');const hcEl=$('cap-habit-count');
+  if(tcEl)tcEl.textContent=tasks.length;
+  if(hcEl)hcEl.textContent=habits.length;
+
+  // render tasks (editable)
+  const tCont=$('capture-list-tasks');tCont.innerHTML='';
   tasks.forEach((t,i)=>{
-    const goal=S.goals.find(g=>g.id===t.goalId);
     const d=document.createElement('div');d.className='ai-result';
+    const catOpts=['research','startup','personal','admin'].map(c=>`<option value="${c}" ${t.cat===c?'selected':''}>${catEmoji(c)} ${c}</option>`).join('');
     d.innerHTML=`
-      <div class="ai-result-hdr">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1">
-          <input type="checkbox" checked id="cap-${i}" style="width:15px;height:15px;accent-color:var(--teal)"/>
-          <span style="font-weight:600;font-size:.86rem">${esc(t.title)}</span>
+      <div class="ai-result-hdr" style="margin-bottom:10px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex-shrink:0">
+          <input type="checkbox" checked id="cap-t-${i}" style="width:18px;height:18px;accent-color:var(--teal)"/>
+          <span style="font-size:.75rem;color:var(--teal)">Include</span>
         </label>
-        <div class="pri-row" style="width:auto;gap:4px;flex-shrink:0">
-          <button class="pri-btn ${t.priority==='low'?'pl':''}" onclick="updCap(${i},'priority','low')" style="padding:2px 7px;font-size:.62rem">Low</button>
-          <button class="pri-btn ${t.priority==='med'?'pm':''}" onclick="updCap(${i},'priority','med')" style="padding:2px 7px;font-size:.62rem">Med</button>
-          <button class="pri-btn ${t.priority==='high'?'ph':''}" onclick="updCap(${i},'priority','high')" style="padding:2px 7px;font-size:.62rem">High</button>
+        <div style="margin-left:auto;display:flex;gap:4px">
+          <button class="pri-btn ${t.priority==='low'?'pl':''}" onclick="updCap(${i},'priority','low')" style="padding:4px 9px;font-size:.68rem">Low</button>
+          <button class="pri-btn ${t.priority==='med'?'pm':''}" onclick="updCap(${i},'priority','med')" style="padding:4px 9px;font-size:.68rem">Med</button>
+          <button class="pri-btn ${t.priority==='high'?'ph':''}" onclick="updCap(${i},'priority','high')" style="padding:4px 9px;font-size:.68rem">High</button>
         </div>
       </div>
-      <div class="task-meta">
-        <span class="pill pill-${t.cat}">${catEmoji(t.cat)} ${t.cat}</span>
-        ${goal?`<span class="pill pill-goal">🎯 ${esc(goal.title.substring(0,20))}</span>`:''}
-        ${t.project?`<span class="pill pill-src">📁 ${esc(t.project)}</span>`:''}
-        ${t.dueISO?`<span class="pill pill-time">📅 ${fmtDue(t.dueISO)}</span>`:'<span class="pill pill-time" style="opacity:.4">No date</span>'}
+      <div class="fg" style="margin-bottom:8px"><label>Task title</label>
+        <input value="${esc(t.title)}" oninput="S.ui.capturedTasks[${i}].title=this.value" style="font-weight:600;font-size:15px"/>
       </div>
-      ${t.implIntention?`<div class="impl-tag">💡 ${esc(t.implIntention)}</div>`:''}
-      ${t.note?`<div class="task-note" style="margin-top:5px">${esc(t.note)}</div>`:''}`;
-    cont.appendChild(d);
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div class="fg" style="margin-bottom:0"><label>Category</label>
+          <select onchange="S.ui.capturedTasks[${i}].cat=this.value">${catOpts}</select>
+        </div>
+        <div class="fg" style="margin-bottom:0"><label>Due date</label>
+          <input type="datetime-local" value="${t.dueISO||''}" oninput="S.ui.capturedTasks[${i}].dueISO=this.value"/>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:8px"><label>Notes (optional)</label>
+        <input value="${esc(t.note||'')}" oninput="S.ui.capturedTasks[${i}].note=this.value" placeholder="add a note…"/>
+      </div>
+      ${t.implIntention?`<div class="impl-tag">💡 <span contenteditable="true" oninput="S.ui.capturedTasks[${i}].implIntention=this.textContent">${esc(t.implIntention)}</span></div>`:''}`;
+    tCont.appendChild(d);
   });
+  if(!tasks.length)tCont.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>No tasks extracted.</p></div>';
+
+  // render habits (editable)
+  const hCont=$('capture-list-habits');hCont.innerHTML='';
+  habits.forEach((h,i)=>{
+    const d=document.createElement('div');d.className='ai-result';
+    const catOpts=['research','health','mindset','startup','personal'].map(c=>`<option value="${c}" ${h.cat===c?'selected':''}>${c}</option>`).join('');
+    d.innerHTML=`
+      <div class="ai-result-hdr" style="margin-bottom:10px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex-shrink:0">
+          <input type="checkbox" checked id="cap-h-${i}" style="width:18px;height:18px;accent-color:var(--sage)"/>
+          <span style="font-size:.75rem;color:var(--sage)">🌱 Include habit</span>
+        </label>
+      </div>
+      <div class="fg" style="margin-bottom:8px"><label>Habit name</label>
+        <input value="${esc(h.name)}" oninput="S.ui.capturedHabits[${i}].name=this.value" style="font-weight:600;font-size:15px"/>
+      </div>
+      <div class="fg" style="margin-bottom:8px"><label>Identity (I am…)</label>
+        <input value="${esc(h.identity||'')}" oninput="S.ui.capturedHabits[${i}].identity=this.value" placeholder="I am a researcher who writes daily"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg" style="margin-bottom:0"><label>Category</label>
+          <select onchange="S.ui.capturedHabits[${i}].cat=this.value">${catOpts}</select>
+        </div>
+        <div class="fg" style="margin-bottom:0"><label>After…</label>
+          <input value="${esc(h.stack||'')}" oninput="S.ui.capturedHabits[${i}].stack=this.value" placeholder="after my morning coffee"/>
+        </div>
+      </div>`;
+    hCont.appendChild(d);
+  });
+  if(!habits.length)hCont.innerHTML='<div class="empty"><div class="empty-icon">🌱</div><p>No recurring habits detected.</p></div>';
+
   $('capture-results').style.display='block';
+  // default to tasks tab
+  const firstChip=document.querySelector('#capture-results .chips .chip');
+  if(firstChip)showCaptureTab('tasks',firstChip);
 }
 
-function updCap(i,f,v){S.ui.capturedTasks[i][f]=v;showCaptureResults(S.ui.capturedTasks)}
+function updCap(i,f,v){S.ui.capturedTasks[i][f]=v;showCaptureResults()}
 
 function addAllCaptured(){
-  let n=0;
-  S.ui.capturedTasks.forEach((t,i)=>{
-    const ch=$(`cap-${i}`);if(!ch||!ch.checked)return;
+  let nt=0,nh=0;
+  (S.ui.capturedTasks||[]).forEach((t,i)=>{
+    const ch=$(`cap-t-${i}`);if(!ch||!ch.checked)return;
     S.tasks.push({id:Date.now()+Math.random(),title:t.title,cat:t.cat,goalId:t.goalId||null,project:t.project||'',due:t.dueISO||'',priority:t.priority,note:t.note||'',implIntention:t.implIntention||'',remind:30,done:false,source:'capture',created:Date.now()});
-    n++;
+    nt++;
   });
-  save();dismissCapture();toast(`✓ Added ${n} task${n!==1?'s':''}`);renderTasks();
+  (S.ui.capturedHabits||[]).forEach((h,i)=>{
+    const ch=$(`cap-h-${i}`);if(!ch||!ch.checked)return;
+    S.habits.push({id:'h'+Date.now()+Math.random(),name:h.name,identity:h.identity||'',cat:h.cat||'personal',stack:h.stack||'',time:h.time||'',created:Date.now()});
+    nh++;
+  });
+  save();dismissCapture();
+  const msg=[];if(nt)msg.push(`${nt} task${nt!==1?'s':''}`);if(nh)msg.push(`${nh} habit${nh!==1?'s':''}`);
+  toast(`✓ Added ${msg.join(' + ')}`);
+  renderTasks();renderHabits();
 }
-function dismissCapture(){$('capture-results').style.display='none';$('capture-list').innerHTML='';S.ui.capturedTasks=[]}
+function dismissCapture(){$('capture-results').style.display='none';if($('capture-list-tasks'))$('capture-list-tasks').innerHTML='';if($('capture-list-habits'))$('capture-list-habits').innerHTML='';S.ui.capturedTasks=[];S.ui.capturedHabits=[];}
 
 // ════════════════════════════════════════════════════════════════
 // HABITS
@@ -1562,6 +1701,18 @@ function loadSettings(){
   const toggle=$('notif-toggle');if(toggle)toggle.classList.toggle('on',S.settings.notif);
   updateAiDots();
   if(S.settings.gmailToken){const gs=$('gmail-status');if(gs)gs.style.display='block'}
+  // load Slack/Discord
+  if(S.settings.slackToken){const st=$('slack-token');if(st)st.value=S.settings.slackToken;if(S.settings.slackChannels?.length)renderSlackChannels(S.settings.slackChannels)}
+  if(S.settings.discordToken){const dt=$('discord-token');if(dt)dt.value=S.settings.discordToken}
+  if(S.settings.discordChannelIds){const di=$('discord-channels-input');if(di)di.value=S.settings.discordChannelIds}
+  // load sync
+  if(S.settings.syncId){
+    const sc=$('sync-code-input');if(sc)sc.value=S.settings.syncId;
+    const sb=$('sync-create-btn');if(sb)sb.style.display='none';
+    const sp=$('sync-push-btn');if(sp)sp.style.display='';
+    const spl=$('sync-pull-btn');if(spl)spl.style.display='';
+    setSyncStatus('✓ Sync active — code: '+S.settings.syncId.substring(0,8)+'…','var(--sage)');
+  }
 }
 
 function saveApiKey(){S.settings.apiKey=$('api-key-input').value.trim();save();updateAiDots();toast('✓ API key saved')}
@@ -1651,6 +1802,243 @@ window.addEventListener('DOMContentLoaded',()=>{
   // Service worker
   if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 });
+
+// ════════════════════════════════════════════════════════════════
+// SLACK INTEGRATION
+// ════════════════════════════════════════════════════════════════
+async function saveSlackToken(){
+  const token=$('slack-token')?.value.trim();
+  if(!token){toast('Enter Slack token');return}
+  S.settings.slackToken=token;save();
+  toast('Fetching Slack channels…');
+  await loadSlackChannels();
+}
+
+async function loadSlackChannels(){
+  const token=S.settings.slackToken;if(!token)return;
+  try{
+    const r=await fetch('https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=50',{
+      headers:{Authorization:`Bearer ${token}`}
+    });
+    const d=await r.json();
+    if(!d.ok){toast('Slack error: '+d.error);return}
+    const channels=(d.channels||[]).filter(c=>!c.is_archived).slice(0,20);
+    S.settings.slackChannels=channels.map(c=>({id:c.id,name:c.name,selected:false}));
+    save();
+    renderSlackChannels(S.settings.slackChannels);
+    toast('✓ Slack connected — pick channels');
+  }catch(e){toast('Slack: '+e.message+' (CORS? Use user token xoxp-…)')}
+}
+
+function renderSlackChannels(channels){
+  const cont=$('slack-channel-list');if(!cont)return;
+  cont.innerHTML='';
+  const wrap=$('slack-channels');if(wrap)wrap.style.display='';
+  channels.forEach(ch=>{
+    const btn=document.createElement('button');
+    btn.className='chip'+(ch.selected?' active':'');
+    btn.textContent='#'+ch.name;
+    btn.onclick=function(){
+      ch.selected=!ch.selected;
+      btn.classList.toggle('active',ch.selected);
+      S.settings.slackChannels=channels;save();
+    };
+    cont.appendChild(btn);
+  });
+}
+
+async function fetchSlackMessages(){
+  const token=S.settings.slackToken;if(!token){toast('Connect Slack first');return}
+  const selected=(S.settings.slackChannels||[]).filter(c=>c.selected);
+  if(!selected.length){toast('Select at least one channel');return}
+  toast('Fetching Slack messages…');
+  let fetched=0;
+  for(const ch of selected){
+    try{
+      const r=await fetch(`https://slack.com/api/conversations.history?channel=${ch.id}&limit=20`,{
+        headers:{Authorization:`Bearer ${token}`}
+      });
+      const d=await r.json();
+      if(!d.ok)continue;
+      for(const msg of (d.messages||[])){
+        if(msg.bot_id||!msg.text)continue;
+        const msgId='sl-'+msg.ts;
+        if(S.messages.find(m=>m.slackId===msgId))continue;
+        const myName=(S.settings.name||'').toLowerCase();
+        const mentionsMe=myName&&(msg.text.toLowerCase().includes(myName)||msg.text.includes('<@'));
+        S.messages.push({
+          id:Date.now()+Math.random(),slackId:msgId,platform:'slack',
+          author:msg.username||msg.user||'Slack',
+          channel:'#'+ch.name,
+          content:msg.text.substring(0,300),
+          needsReply:mentionsMe,replyReason:mentionsMe?'Mentioned you':null,
+          urgency:mentionsMe?'new':'ok',replied:false,addedAt:Date.now(),taskAdded:false
+        });
+        fetched++;
+      }
+    }catch(e){console.error('Slack fetch',e)}
+  }
+  save();renderMessages();updateReplyBadge();
+  toast(fetched?`✓ Got ${fetched} Slack messages`:'No new Slack messages');
+}
+
+// ════════════════════════════════════════════════════════════════
+// DISCORD INTEGRATION
+// ════════════════════════════════════════════════════════════════
+async function saveDiscordToken(){
+  const token=$('discord-token')?.value.trim();
+  const channelInput=$('discord-channels-input')?.value.trim();
+  if(!token){toast('Enter Discord bot token');return}
+  if(!channelInput){toast('Enter at least one channel ID');return}
+  S.settings.discordToken=token;
+  S.settings.discordChannelIds=channelInput;
+  save();
+  toast('Fetching Discord messages…');
+  await fetchDiscordMessages();
+}
+
+async function fetchDiscordMessages(){
+  const token=S.settings.discordToken;if(!token)return;
+  const channelIds=(S.settings.discordChannelIds||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if(!channelIds.length)return;
+  let fetched=0;
+  for(const channelId of channelIds){
+    try{
+      const r=await fetch(`https://discord.com/api/v10/channels/${channelId}/messages?limit=20`,{
+        headers:{Authorization:`Bot ${token}`}
+      });
+      if(!r.ok){const err=await r.json();toast('Discord: '+(err.message||r.status));continue}
+      const msgs=await r.json();
+      for(const msg of msgs){
+        if(msg.author?.bot)continue;
+        const msgId='dc-'+msg.id;
+        if(S.messages.find(m=>m.discordId===msgId))continue;
+        const myName=(S.settings.name||'').toLowerCase();
+        const mentionsMe=myName&&msg.content.toLowerCase().includes(myName);
+        const hasMention=(msg.mentions||[]).length>0;
+        S.messages.push({
+          id:Date.now()+Math.random(),discordId:msgId,platform:'discord',
+          author:msg.author?.username||'Discord',
+          channel:'Discord',
+          content:msg.content.substring(0,300),
+          needsReply:mentionsMe||hasMention,
+          replyReason:mentionsMe||hasMention?'Mentioned you':null,
+          urgency:mentionsMe||hasMention?'new':'ok',
+          replied:false,addedAt:Date.now(),taskAdded:false
+        });
+        fetched++;
+      }
+    }catch(e){toast('Discord: '+e.message+' (check bot token & channel ID)')}
+  }
+  save();renderMessages();updateReplyBadge();
+  toast(fetched?`✓ Got ${fetched} Discord messages`:'No new Discord messages');
+}
+
+async function refreshAllMessages(){
+  toast('Refreshing all…');
+  if(S.settings.slackToken&&(S.settings.slackChannels||[]).some(c=>c.selected))await fetchSlackMessages();
+  if(S.settings.discordToken&&S.settings.discordChannelIds)await fetchDiscordMessages();
+  if(S.settings.gmailToken)await fetchGmailMessages();
+}
+
+// ════════════════════════════════════════════════════════════════
+// CROSS-DEVICE SYNC (jsonblob.com — free, no signup)
+// ════════════════════════════════════════════════════════════════
+const BLOB_API='https://jsonblob.com/api/jsonBlob';
+
+function setSyncStatus(msg,color){
+  const el=$('sync-status-text');if(el){el.textContent=msg;el.style.color=color||'var(--text3)'}
+}
+
+function getSyncPayload(){
+  // don't sync UI state or sensitive tokens
+  return{tasks:S.tasks,goals:S.goals,habits:S.habits,habitLogs:S.habitLogs,messages:S.messages,
+    settings:{name:S.settings.name,roles:S.settings.roles,briefTime:S.settings.briefTime}};
+}
+
+async function syncCreate(){
+  const btn=$('sync-create-btn');if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span> Creating…'}
+  setSyncStatus('Creating cloud profile…','var(--amber)');
+  try{
+    const r=await fetch(BLOB_API,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify(getSyncPayload())
+    });
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const loc=r.headers.get('Location')||r.url;
+    const id=loc.split('/').pop();
+    S.settings.syncId=id;save();
+    const inp=$('sync-code-input');if(inp)inp.value=id;
+    if(btn){btn.style.display='none'}
+    const pp=$('sync-push-btn');if(pp)pp.style.display='';
+    const pl=$('sync-pull-btn');if(pl)pl.style.display='';
+    setSyncStatus('✓ Cloud profile created! Copy your sync code and paste it on other devices.','var(--sage)');
+    toast('✓ Sync profile created');
+  }catch(e){setSyncStatus('Failed: '+e.message,'var(--coral)');toast('Sync error: '+e.message)}
+  if(btn){btn.disabled=false;btn.innerHTML='☁️ Create Cloud Profile'}
+}
+
+async function syncPush(){
+  if(!S.settings.syncId){toast('Create a cloud profile first');return}
+  const btn=$('sync-push-btn');if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span>'}
+  setSyncStatus('Pushing data…','var(--amber)');
+  try{
+    const r=await fetch(`${BLOB_API}/${S.settings.syncId}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify(getSyncPayload())
+    });
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    setSyncStatus('✓ Pushed at '+new Date().toLocaleTimeString(),'var(--sage)');
+    toast('✓ Data pushed to cloud');
+  }catch(e){setSyncStatus('Push failed: '+e.message,'var(--coral)');toast('Push failed: '+e.message)}
+  if(btn){btn.disabled=false;btn.innerHTML='⬆️ Push'}
+}
+
+async function syncPull(){
+  if(!S.settings.syncId){toast('Create a cloud profile first');return}
+  const btn=$('sync-pull-btn');if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span>'}
+  setSyncStatus('Pulling latest…','var(--amber)');
+  try{
+    const r=await fetch(`${BLOB_API}/${S.settings.syncId}`,{
+      headers:{'Accept':'application/json'}
+    });
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const data=await r.json();
+    // merge — cloud wins for content, keep local settings/tokens
+    if(data.tasks)S.tasks=data.tasks;
+    if(data.goals)S.goals=data.goals;
+    if(data.habits)S.habits=data.habits;
+    if(data.habitLogs)S.habitLogs=data.habitLogs;
+    if(data.messages)S.messages=data.messages;
+    save();
+    renderTasks();renderHabits();renderMessages();renderGoals();renderMorning();
+    setSyncStatus('✓ Pulled at '+new Date().toLocaleTimeString(),'var(--sage)');
+    toast('✓ Data pulled from cloud');
+  }catch(e){setSyncStatus('Pull failed: '+e.message,'var(--coral)');toast('Pull failed: '+e.message)}
+  if(btn){btn.disabled=false;btn.innerHTML='⬇️ Pull Latest'}
+}
+
+async function syncImport(){
+  const id=$('sync-import-input')?.value.trim();
+  if(!id){toast('Enter a sync code');return}
+  if(!confirm('This will replace your current data with the cloud data. Continue?'))return;
+  S.settings.syncId=id;save();
+  const inp=$('sync-code-input');if(inp)inp.value=id;
+  await syncPull();
+  const btn=$('sync-create-btn');if(btn)btn.style.display='none';
+  const pp=$('sync-push-btn');if(pp)pp.style.display='';
+  const pl=$('sync-pull-btn');if(pl)pl.style.display='';
+}
+
+function copySyncCode(){
+  const id=S.settings.syncId;
+  if(!id){toast('Create a cloud profile first');return}
+  navigator.clipboard?.writeText(id).then(()=>toast('✓ Sync code copied!')).catch(()=>{
+    const inp=$('sync-code-input');if(inp){inp.select();document.execCommand('copy');toast('✓ Copied!')}
+  });
+}
 </script>
 </body>
 </html>
