@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#E8A528"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<title>TaskFlow AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ── RESET & ROOT ─────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#111008; --s1:#1a1813; --s2:#242118; --s3:#2e2b22; --border:#3a3628;
+  --amber:#E8A528; --amber-dim:rgba(232,165,40,.13); --amber-glow:rgba(232,165,40,.06);
+  --teal:#2DD4BF; --teal-dim:rgba(45,212,191,.13);
+  --coral:#F87171; --coral-dim:rgba(248,113,113,.13);
+  --sage:#86EFAC; --sage-dim:rgba(134,239,172,.13);
+  --violet:#C084FC; --violet-dim:rgba(192,132,252,.13);
+  --blue:#60A5FA; --blue-dim:rgba(96,165,250,.13);
+  --text:#F0EBE0; --text2:#A09880; --text3:#6B6454;
+  --r:12px; --r-sm:7px;
+  --nav-h:56px;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif}
+
+/* ── SCROLLBAR ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ── LAYOUT ────────────────────────────────────────────────────────────── */
+#app{display:flex;flex-direction:column;height:100%;max-width:1400px;margin:0 auto;position:relative}
+
+/* ── TOP BAR ───────────────────────────────────────────────────────────── */
+#topbar{
+  display:flex;align-items:center;gap:12px;padding:12px 16px;
+  background:rgba(17,16,8,.9);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);flex-shrink:0;z-index:50;
+  position:sticky;top:0;
+}
+.logo{font-family:'Fraunces',serif;font-weight:700;font-size:1.2rem;color:var(--amber);white-space:nowrap;display:flex;align-items:center;gap:6px}
+.logo-sub{font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--teal);letter-spacing:.12em;text-transform:uppercase;vertical-align:super;margin-left:2px}
+.topbar-stats{display:flex;gap:10px;margin-left:auto;align-items:center}
+.ts{font-family:'JetBrains Mono',monospace;font-size:.65rem;padding:3px 8px;border-radius:20px;border:1px solid var(--border);color:var(--text2)}
+.ts.red{border-color:var(--coral);color:var(--coral);background:var(--coral-dim)}
+.ts.amber{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+.ai-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.ai-dot.on{background:var(--sage);box-shadow:0 0 6px var(--sage)}
+#install-btn{display:none;padding:4px 10px;background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);border-radius:6px;font-size:.7rem;font-family:'Outfit',sans-serif;cursor:pointer;font-weight:600}
+
+/* ── BOTTOM NAV (mobile) / SIDE NAV (desktop) ────────────────────────── */
+#bottom-nav{
+  display:flex;align-items:center;justify-content:space-around;
+  background:rgba(17,16,8,.95);backdrop-filter:blur(16px);
+  border-top:1px solid var(--border);
+  padding:8px 4px calc(8px + var(--safe-bottom));
+  flex-shrink:0;z-index:50;
+}
+.nav-btn{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:4px 8px;border-radius:8px;cursor:pointer;
+  color:var(--text3);font-size:.56rem;font-weight:600;font-family:'Outfit',sans-serif;
+  letter-spacing:.04em;text-transform:uppercase;border:none;background:none;
+  transition:color .18s;flex:1;position:relative;min-width:0;
+}
+.nav-btn .nav-icon{font-size:1.1rem;line-height:1;transition:transform .2s}
+.nav-btn.active{color:var(--amber)}
+.nav-btn.active .nav-icon{transform:translateY(-2px)}
+.nav-badge{position:absolute;top:2px;right:calc(50% - 16px);background:var(--coral);color:#fff;border-radius:10px;font-size:.5rem;padding:1px 4px;font-family:'JetBrains Mono',monospace;min-width:14px;text-align:center}
+
+/* ── MAIN CONTENT ──────────────────────────────────────────────────────── */
+#content{flex:1;overflow-y:auto;overflow-x:hidden;position:relative}
+.page{display:none;min-height:100%;padding:16px}
+.page.active{display:block}
+
+/* Desktop nav */
+@media(min-width:768px){
+  #app{flex-direction:row}
+  #topbar{display:none}
+  #bottom-nav{flex-direction:column;justify-content:flex-start;align-items:stretch;width:200px;border-top:none;border-right:1px solid var(--border);padding:20px 10px 20px;gap:4px;flex-shrink:0}
+  .nav-btn{flex-direction:row;justify-content:flex-start;gap:10px;padding:9px 12px;font-size:.72rem;flex:0}
+  .nav-btn .nav-icon{font-size:.95rem}
+  .nav-btn.active{background:var(--amber-dim);border-radius:8px}
+  .logo-desktop{font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;color:var(--amber);padding:10px 12px 20px;border-bottom:1px solid var(--border);margin-bottom:8px}
+  .logo-desktop span{font-family:'JetBrains Mono',monospace;font-size:.5rem;color:var(--teal);letter-spacing:.12em;text-transform:uppercase;vertical-align:super;margin-left:2px}
+  #content{flex:1;overflow-y:auto}
+  .page{padding:24px 28px}
+  .nav-bottom-area{margin-top:auto;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+  #install-btn{display:none!important}
+}
+@media(max-width:767px){
+  .logo-desktop,.nav-bottom-area{display:none}
+}
+
+/* ── TYPOGRAPHY ────────────────────────────────────────────────────────── */
+.page-hdr{margin-bottom:20px}
+.page-hdr h1{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:600;color:var(--text);line-height:1.2}
+.page-hdr p{font-size:.8rem;color:var(--text2);margin-top:4px}
+.section-label{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:.15em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+
+/* ── CARDS ─────────────────────────────────────────────────────────────── */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px}
+.card-sm{padding:12px}
+.two-col{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+@media(max-width:900px){.two-col{grid-template-columns:1fr}}
+
+/* ── FORM ELEMENTS ──────────────────────────────────────────────────────── */
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:11px}
+label{font-size:.72rem;color:var(--text2);font-weight:500}
+input,textarea,select{background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:var(--r-sm);padding:8px 11px;font-family:'Outfit',sans-serif;font-size:.84rem;outline:none;transition:border-color .2s;width:100%}
+input:focus,textarea:focus,select:focus{border-color:var(--amber)}
+select option{background:#1a1813}
+textarea{resize:vertical;line-height:1.55}
+input[type=datetime-local]{color-scheme:dark}
+
+/* ── BUTTONS ────────────────────────────────────────────────────────────── */
+.btn{padding:8px 15px;border-radius:var(--r-sm);border:none;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600;font-size:.82rem;transition:all .18s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn-primary{background:var(--amber);color:#111008}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px)}
+.btn-ai{background:linear-gradient(135deg,var(--teal),#818CF8);color:#fff}
+.btn-ai:hover{opacity:.88;transform:translateY(-1px)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text2)}
+.btn-ghost:hover{border-color:var(--text2);color:var(--text)}
+.btn-danger{background:var(--coral-dim);border:1px solid var(--coral);color:var(--coral)}
+.btn-teal{background:var(--teal-dim);border:1px solid var(--teal);color:var(--teal)}
+.btn-full{width:100%;justify-content:center}
+.btn:disabled{opacity:.38;cursor:not-allowed;transform:none!important}
+.btn-sm{padding:5px 11px;font-size:.75rem}
+.icon-btn{background:none;border:none;padding:4px;cursor:pointer;color:var(--text3);border-radius:4px;transition:all .15s;display:flex;align-items:center}
+.icon-btn:hover{background:var(--s3);color:var(--coral)}
+
+/* ── PRIORITY SELECTOR ─────────────────────────────────────────────────── */
+.pri-row{display:flex;gap:5px}
+.pri-btn{flex:1;padding:6px 4px;border:1px solid var(--border);background:var(--s2);color:var(--text3);border-radius:var(--r-sm);cursor:pointer;font-size:.7rem;font-weight:600;font-family:'Outfit',sans-serif;text-align:center;transition:all .18s}
+.pri-btn.pl{border-color:var(--sage);color:var(--sage);background:var(--sage-dim)}
+.pri-btn.pm{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+.pri-btn.ph{border-color:var(--coral);color:var(--coral);background:var(--coral-dim)}
+
+/* ── CHIPS ──────────────────────────────────────────────────────────────── */
+.chip{padding:4px 10px;border:1px solid var(--border);border-radius:20px;font-size:.7rem;cursor:pointer;color:var(--text3);background:transparent;font-family:'Outfit',sans-serif;font-weight:600;transition:all .18s;white-space:nowrap}
+.chip.active{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+
+/* ── TASK CARDS ─────────────────────────────────────────────────────────── */
+.task-card{display:flex;align-items:flex-start;gap:11px;padding:11px 13px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px;transition:all .18s;animation:fadeUp .2s ease;position:relative;overflow:hidden}
+.task-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.task-card.p-low::before{background:var(--sage)}
+.task-card.p-med::before{background:var(--amber)}
+.task-card.p-high::before{background:var(--coral)}
+.task-card:hover{border-color:var(--text3);transform:translateX(2px)}
+.task-card.done{opacity:.38}
+.task-check{width:16px;height:16px;border:2px solid var(--border);border-radius:50%;cursor:pointer;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.task-check:hover{border-color:var(--sage)}
+.task-card.done .task-check{background:var(--sage);border-color:var(--sage)}
+.task-body{flex:1;min-width:0}
+.task-title{font-weight:500;font-size:.86rem;line-height:1.35}
+.task-card.done .task-title{text-decoration:line-through;color:var(--text3)}
+.task-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;align-items:center}
+.pill{font-family:'JetBrains Mono',monospace;font-size:.58rem;padding:1px 6px;border-radius:3px;white-space:nowrap}
+.pill-research{background:var(--teal-dim);color:var(--teal)}
+.pill-startup{background:var(--violet-dim);color:var(--violet)}
+.pill-personal{background:var(--sage-dim);color:var(--sage)}
+.pill-admin{background:var(--amber-dim);color:var(--amber)}
+.pill-time{background:var(--s3);color:var(--text3);border:1px solid var(--border)}
+.pill-overdue{background:var(--coral-dim);color:var(--coral)}
+.pill-goal{background:var(--amber-dim);color:var(--amber)}
+.pill-src{background:rgba(255,255,255,.04);color:var(--text3);border:1px solid var(--border)}
+.task-note{font-size:.74rem;color:var(--text2);margin-top:4px;line-height:1.5}
+.task-impl{font-size:.72rem;color:var(--teal);margin-top:3px;font-style:italic;line-height:1.4}
+.task-actions{display:flex;gap:2px;opacity:0;transition:opacity .15s;flex-shrink:0}
+.task-card:hover .task-actions{opacity:1}
+.group-hdr{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--text3);text-transform:uppercase;letter-spacing:.15em;padding:0 0 7px;border-bottom:1px solid var(--border);margin:14px 0 8px;display:flex;align-items:center;gap:7px}
+.group-hdr .cnt{background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:1px 6px;font-size:.55rem}
+.group-hdr.g-overdue{color:var(--coral)}
+.group-hdr.g-today{color:var(--amber)}
+.empty{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty-icon{font-size:2.2rem;margin-bottom:10px;opacity:.3}
+.empty p{font-size:.82rem}
+
+/* ── STATS BAR ──────────────────────────────────────────────────────────── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+@media(max-width:500px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px}
+.stat-num{font-family:'Fraunces',serif;font-size:1.8rem;font-weight:600;line-height:1}
+.stat-lbl{font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-top:3px}
+.stat-num.coral{color:var(--coral)}
+.stat-num.amber{color:var(--amber)}
+.stat-num.teal{color:var(--teal)}
+.stat-num.sage{color:var(--sage)}
+
+/* ── HABITS ─────────────────────────────────────────────────────────────── */
+.habit-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;margin-bottom:8px;display:flex;align-items:center;gap:12px;transition:all .18s;animation:fadeUp .2s ease}
+.habit-check{width:28px;height:28px;border:2px solid var(--border);border-radius:8px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .2s}
+.habit-check:hover{border-color:var(--sage)}
+.habit-card.hc-done .habit-check{background:var(--sage);border-color:var(--sage)}
+.habit-body{flex:1;min-width:0}
+.habit-name{font-weight:600;font-size:.88rem}
+.habit-identity{font-size:.72rem;color:var(--teal);font-style:italic;margin-top:2px}
+.habit-streak{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--amber);margin-top:3px;display:flex;align-items:center;gap:4px}
+.habit-dots{display:flex;gap:3px;margin-top:5px}
+.hdot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0}
+.hdot.done{background:var(--sage)}
+.hdot.today{background:var(--amber);box-shadow:0 0 5px var(--amber)}
+.hdot.missed{background:var(--coral-dim);border:1px solid var(--coral)}
+.habit-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.habit-card:hover .habit-actions{opacity:1}
+
+/* ── FOCUS / POMODORO ──────────────────────────────────────────────────── */
+.pomo-ring{width:220px;height:220px;margin:0 auto;position:relative}
+.pomo-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.pomo-ring circle{fill:none;stroke-width:10;stroke-linecap:round}
+.pomo-bg{stroke:var(--s3)}
+.pomo-fg{stroke:var(--amber);transition:stroke-dashoffset .9s ease}
+.pomo-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.pomo-time{font-family:'Fraunces',serif;font-size:2.8rem;font-weight:600;color:var(--text);line-height:1}
+.pomo-phase{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;margin-top:4px}
+.pomo-controls{display:flex;gap:10px;justify-content:center;margin-top:18px}
+.distraction-item{display:flex;gap:8px;align-items:center;padding:8px 10px;background:var(--s2);border-radius:var(--r-sm);margin-bottom:5px;font-size:.82rem;animation:fadeUp .18s ease}
+
+/* ── MESSAGES ────────────────────────────────────────────────────────────── */
+.msg-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;margin-bottom:8px;animation:fadeUp .2s ease}
+.msg-card.needs-reply{border-left:3px solid var(--coral)}
+.msg-card.replied{opacity:.45}
+.msg-header{display:flex;align-items:center;gap:7px;margin-bottom:7px;flex-wrap:wrap}
+.pb{font-family:'JetBrains Mono',monospace;font-size:.58rem;padding:2px 7px;border-radius:4px;font-weight:500}
+.pb-discord{background:rgba(114,137,218,.18);color:#7289da}
+.pb-slack{background:rgba(224,30,90,.15);color:#e01e5a}
+.pb-gmail{background:rgba(234,67,53,.15);color:#EA4335}
+.msg-author{font-weight:700;font-size:.82rem}
+.msg-time{font-size:.68rem;color:var(--text3);margin-left:auto;font-family:'JetBrains Mono',monospace}
+.msg-body{font-size:.82rem;line-height:1.55;color:var(--text)}
+.urgency-pill{font-family:'JetBrains Mono',monospace;font-size:.58rem;padding:2px 7px;border-radius:4px}
+.u-new{background:var(--coral-dim);color:var(--coral)}
+.u-soon{background:var(--amber-dim);color:var(--amber)}
+.u-ok{background:var(--sage-dim);color:var(--sage)}
+
+/* ── GOALS ───────────────────────────────────────────────────────────────── */
+.goal-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:16px;transition:transform .2s;position:relative;overflow:hidden}
+.goal-card:hover{transform:translateY(-2px)}
+.goal-bar{height:3px;background:var(--s3);border-radius:2px;margin-top:10px;overflow:hidden}
+.goal-fill{height:100%;border-radius:2px;transition:width .5s ease}
+.goals-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+
+/* ── INSIGHTS ────────────────────────────────────────────────────────────── */
+.ins-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.ins-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center}
+.ins-big{font-family:'Fraunces',serif;font-size:2.5rem;font-weight:600}
+.ins-lbl{font-size:.72rem;color:var(--text2);margin-top:4px;line-height:1.4}
+.week-bar{display:flex;gap:4px;align-items:flex-end;height:80px;margin-top:12px}
+.wbar{flex:1;border-radius:3px 3px 0 0;background:var(--teal-dim);border:1px solid var(--teal);transition:height .4s ease;min-height:3px;position:relative;cursor:default}
+.wbar:hover{background:var(--teal)}
+.wbar-lbl{font-family:'JetBrains Mono',monospace;font-size:.52rem;color:var(--text3);text-align:center;margin-top:4px}
+.habit-heatmap{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px}
+.hm-cell{width:14px;height:14px;border-radius:2px;background:var(--s3);cursor:default;transition:background .2s}
+
+/* ── AI CAPTURE RESULTS ─────────────────────────────────────────────────── */
+.ai-result{background:var(--s2);border:1px solid var(--teal);border-radius:var(--r);padding:12px;margin-bottom:8px;animation:fadeUp .22s ease}
+.ai-result-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;flex-wrap:wrap}
+.impl-tag{font-size:.7rem;color:var(--teal);font-style:italic;margin-top:4px;padding:4px 8px;background:var(--teal-dim);border-radius:4px;border-left:2px solid var(--teal)}
+
+/* ── COACH MODAL ─────────────────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:22px;width:min(540px,100%);max-height:85vh;overflow-y:auto;animation:popIn .22s ease}
+.modal-title{font-family:'Fraunces',serif;font-size:1.2rem;font-weight:600;color:var(--amber);margin-bottom:14px}
+.coach-bubble{background:var(--s2);border-radius:var(--r);padding:14px;font-size:.84rem;line-height:1.65;color:var(--text);border-left:3px solid var(--teal);margin-bottom:12px}
+
+/* ── TOAST ───────────────────────────────────────────────────────────────── */
+#toast{position:fixed;bottom:calc(70px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(80px);background:var(--s2);border:1px solid var(--amber);color:var(--text);padding:9px 18px;border-radius:8px;font-size:.8rem;transition:transform .28s ease;z-index:300;white-space:nowrap;pointer-events:none;max-width:90vw}
+#toast.show{transform:translateX(-50%) translateY(0)}
+@media(min-width:768px){#toast{bottom:24px}}
+
+/* ── SPINNER ─────────────────────────────────────────────────────────────── */
+.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:currentColor;border-radius:50%;animation:spin .65s linear infinite;display:inline-block;vertical-align:middle}
+
+/* ── ANIMATIONS ──────────────────────────────────────────────────────────── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulseAmber{0%,100%{box-shadow:0 0 0 0 rgba(232,165,40,.3)}50%{box-shadow:0 0 0 8px rgba(232,165,40,0)}}
+
+/* ── PROGRESS BAR ────────────────────────────────────────────────────────── */
+.prog-bar{height:4px;background:var(--s3);border-radius:2px;overflow:hidden;margin-top:8px}
+.prog-fill{height:100%;border-radius:2px;transition:width .45s ease}
+
+/* ── TOGGLE ──────────────────────────────────────────────────────────────── */
+.toggle{width:38px;height:21px;background:var(--border);border-radius:20px;cursor:pointer;position:relative;transition:background .2s;border:none;flex-shrink:0}
+.toggle.on{background:var(--sage)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:15px;height:15px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle.on::after{transform:translateX(17px)}
+
+/* ── SECTION HDR ─────────────────────────────────────────────────────────── */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+.sec-hdr h2{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:600}
+.sec-hdr-sub{font-size:.78rem;color:var(--text2);margin-top:1px}
+
+/* ── MORNING CARD ────────────────────────────────────────────────────────── */
+.morning-card{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--amber);border-radius:var(--r);padding:18px;margin-bottom:18px;position:relative;overflow:hidden}
+.morning-card::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(232,165,40,.08),transparent 70%)}
+.morning-greeting{font-family:'Fraunces',serif;font-size:1.2rem;font-weight:600;color:var(--amber)}
+.morning-brief{font-size:.82rem;line-height:1.65;color:var(--text2);margin-top:6px}
+
+/* ── EMAIL SECTION ───────────────────────────────────────────────────────── */
+.email-connect{border:2px dashed var(--border);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;transition:border-color .2s}
+.email-connect:hover{border-color:var(--amber)}
+
+/* ── INSIGHT COACH BOX ───────────────────────────────────────────────────── */
+.insight-coach{background:var(--amber-glow);border:1px solid rgba(232,165,40,.25);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;font-size:.82rem;line-height:1.65;color:var(--text2)}
+.insight-coach strong{color:var(--amber)}
+
+/* ── SCROLLABLE X ────────────────────────────────────────────────────────── */
+.scroll-x{overflow-x:auto;padding-bottom:4px}
+
+/* Pomo session selector */
+.session-chip{padding:5px 12px;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:.72rem;color:var(--text3);background:transparent;font-family:'Outfit',sans-serif;font-weight:600;transition:all .18s;white-space:nowrap}
+.session-chip.active{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+
+/* affect labeling */
+.affect-btn{padding:8px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:.8rem;background:var(--s2);color:var(--text2);font-family:'Outfit',sans-serif;transition:all .18s;text-align:center}
+.affect-btn:hover,.affect-btn.picked{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
+.affect-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ── DESKTOP SIDEBAR ──────────────────────────────────────────────────── -->
+<nav id="bottom-nav">
+  <div class="logo-desktop">TaskFlow<span>AI</span></div>
+  <button class="nav-btn active" onclick="go('tasks')" id="nb-tasks"><span class="nav-icon">📋</span>Tasks</button>
+  <button class="nav-btn" onclick="go('capture')" id="nb-capture"><span class="nav-icon">⚡</span>Capture</button>
+  <button class="nav-btn" onclick="go('habits')" id="nb-habits"><span class="nav-icon">🌱</span>Habits</button>
+  <button class="nav-btn" onclick="go('focus')" id="nb-focus"><span class="nav-icon">🍅</span>Focus</button>
+  <button class="nav-btn" onclick="go('messages')" id="nb-messages"><span class="nav-icon">💬</span>Messages<span class="nav-badge" id="reply-badge" style="display:none">0</span></button>
+  <button class="nav-btn" onclick="go('goals')" id="nb-goals"><span class="nav-icon">🎯</span>Goals</button>
+  <button class="nav-btn" onclick="go('insights')" id="nb-insights"><span class="nav-icon">📊</span>Insights</button>
+  <div class="nav-bottom-area">
+    <button class="nav-btn" onclick="go('settings')" id="nb-settings"><span class="nav-icon">⚙️</span>Settings</button>
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 12px">
+      <span class="ai-dot" id="ai-dot2"></span>
+      <span style="font-size:.62rem;color:var(--text3);font-family:'JetBrains Mono',monospace">AI</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ── TOPBAR (mobile) ───────────────────────────────────────────────────── -->
+<div id="topbar">
+  <div class="logo">TaskFlow<span class="logo-sub">AI</span></div>
+  <div class="topbar-stats">
+    <span class="ts red" id="ts-overdue" style="display:none">0 overdue</span>
+    <span class="ts amber" id="ts-today">0 today</span>
+    <span class="ai-dot" id="ai-dot"></span>
+    <button id="install-btn" onclick="installPWA()">Install App</button>
+  </div>
+</div>
+
+<!-- ── CONTENT ───────────────────────────────────────────────────────────── -->
+<div id="content">
+
+<!-- ════════════ TASKS ════════════ -->
+<div class="page active" id="page-tasks">
+  <div id="morning-section"></div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num coral" id="st-ov">0</div><div class="stat-lbl">Overdue</div></div>
+    <div class="stat-card"><div class="stat-num amber" id="st-td">0</div><div class="stat-lbl">Today</div></div>
+    <div class="stat-card"><div class="stat-num teal" id="st-wk">0</div><div class="stat-lbl">This Week</div></div>
+    <div class="stat-card"><div class="stat-num sage" id="st-dn">0</div><div class="stat-lbl">Done</div></div>
+  </div>
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="section-label">✏️ Add Task</div>
+        <div class="fg"><label>Task *</label>
+          <div style="display:flex;gap:6px">
+            <input id="t-title" placeholder="What needs to be done?" onkeydown="if(event.key==='Enter')addTask()" style="flex:1"/>
+            <button class="btn btn-ai btn-sm" onclick="aiSmartTask()" id="ai-parse-btn" title="AI fill details from goals">🤖</button>
+          </div>
+        </div>
+        <div class="fg"><label>Category</label>
+          <select id="t-cat">
+            <option value="research">🔬 Research</option>
+            <option value="startup">🚀 Startup</option>
+            <option value="personal">🌿 Personal</option>
+            <option value="admin">📋 Admin</option>
+          </select>
+        </div>
+        <div class="fg"><label>Goal</label><select id="t-goal"><option value="">— None —</option></select></div>
+        <div class="fg"><label>Project tag</label><input id="t-project" placeholder="e.g. Nitrogen Cycling Paper"/></div>
+        <div class="fg"><label>Due date &amp; time</label><input type="datetime-local" id="t-due"/></div>
+        <div class="fg"><label>Priority</label>
+          <div class="pri-row">
+            <button class="pri-btn" data-p="low" onclick="setPri('low')">Low</button>
+            <button class="pri-btn pm" data-p="med" onclick="setPri('med')">Med</button>
+            <button class="pri-btn" data-p="high" onclick="setPri('high')">High</button>
+          </div>
+        </div>
+        <div class="fg"><label>Notes</label><textarea id="t-note" placeholder="Extra details…" style="min-height:48px"></textarea></div>
+        <div class="fg"><label>Remind me</label>
+          <select id="t-remind">
+            <option value="0">No reminder</option>
+            <option value="30" selected>30 min before</option>
+            <option value="60">1 hour before</option>
+            <option value="120">2 hours before</option>
+            <option value="1440">1 day before</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="addTask()">+ Add Task</button>
+      </div>
+      <div class="card">
+        <div class="section-label">🔽 Filter & Sort</div>
+        <div style="margin-bottom:10px"><label style="display:block;margin-bottom:5px">Category</label>
+          <div class="chips" id="cat-filters">
+            <button class="chip active" onclick="setF('cat','all',this)">All</button>
+            <button class="chip" onclick="setF('cat','research',this)">🔬</button>
+            <button class="chip" onclick="setF('cat','startup',this)">🚀</button>
+            <button class="chip" onclick="setF('cat','personal',this)">🌿</button>
+            <button class="chip" onclick="setF('cat','admin',this)">📋</button>
+            <button class="chip" onclick="setF('cat','done',this)">✓ Done</button>
+          </div>
+        </div>
+        <div style="margin-bottom:10px"><label style="display:block;margin-bottom:5px">Goal</label>
+          <div class="chips scroll-x" id="goal-filter-chips"></div>
+        </div>
+        <div><label style="display:block;margin-bottom:5px">Sort</label>
+          <div class="chips" id="sort-chips">
+            <button class="chip active" onclick="setSort('due',this)">Due Date</button>
+            <button class="chip" onclick="setSort('priority',this)">Priority</button>
+            <button class="chip" onclick="setSort('goal',this)">Goal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="sec-hdr">
+        <h2 id="tasks-h">All Tasks</h2>
+        <input id="task-search" placeholder="🔍 Search…" oninput="renderTasks()" style="width:180px;padding:6px 10px;font-size:.8rem"/>
+      </div>
+      <div id="task-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ CAPTURE ════════════ -->
+<div class="page" id="page-capture">
+  <div class="page-hdr"><h1>⚡ AI Capture</h1><p>Brain-dump anything. AI structures it into implementation intentions.</p></div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="section-label">💡 Quick Idea</div>
+    <div style="display:flex;gap:8px">
+      <input id="quick-input" placeholder="e.g. reply to Dr. Chen about collaboration, set up experiment this week" onkeydown="if(event.key==='Enter')quickCapture()" style="flex:1"/>
+      <button class="btn btn-ai" onclick="quickCapture()" id="quick-btn">🤖 Parse</button>
+    </div>
+    <p style="font-size:.7rem;color:var(--text3);margin-top:6px">AI assigns project, due date, and creates an implementation intention from your goals.</p>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="section-label">🧠 Brain Dump</div>
+    <textarea id="brain-dump" style="min-height:180px;font-size:.84rem;line-height:1.7" placeholder="Dump everything here…&#10;&#10;• Need to finish the methods section&#10;• Email advisor about committee meeting&#10;• Fix auth bug in dashboard&#10;• Order groceries&#10;• Read Johnson et al. anammox paper&#10;&#10;AI will turn this into organized tasks with implementation intentions."></textarea>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('brain-dump').value=''">Clear</button>
+      <button class="btn btn-ai" onclick="brainDump()" id="dump-btn">🤖 Organize with AI</button>
+    </div>
+  </div>
+  <div id="capture-results" style="display:none">
+    <div class="sec-hdr">
+      <h2 style="font-size:.95rem;color:var(--teal)">✨ Review AI Results</h2>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-ghost btn-sm" onclick="dismissCapture()">Dismiss</button>
+        <button class="btn btn-primary btn-sm" onclick="addAllCaptured()">Add All ✓</button>
+      </div>
+    </div>
+    <div id="capture-list"></div>
+  </div>
+</div>
+
+<!-- ════════════ HABITS ════════════ -->
+<div class="page" id="page-habits">
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="section-label">🌱 Add Habit</div>
+        <div class="fg"><label>Habit name *</label><input id="h-name" placeholder="e.g. Write 250 words" onkeydown="if(event.key==='Enter')addHabit()"/></div>
+        <div class="fg">
+          <label>Identity statement (I am…)</label>
+          <input id="h-identity" placeholder="e.g. a researcher who writes every morning"/>
+        </div>
+        <div class="fg"><label>Category</label>
+          <select id="h-cat">
+            <option value="research">🔬 Research</option>
+            <option value="health">💪 Health</option>
+            <option value="mindset">🧘 Mindset</option>
+            <option value="startup">🚀 Startup</option>
+            <option value="personal">🌿 Personal</option>
+          </select>
+        </div>
+        <div class="fg"><label>Habit stack (after…)</label><input id="h-stack" placeholder="e.g. after my morning coffee"/></div>
+        <div class="fg"><label>Target time</label><input type="time" id="h-time"/></div>
+        <button class="btn btn-primary btn-full" onclick="addHabit()">+ Add Habit</button>
+      </div>
+      <div class="card" style="margin-top:0">
+        <div class="section-label">📋 Today's Check-in</div>
+        <div id="habits-date" style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--text3);margin-bottom:10px"></div>
+        <div id="checkin-progress"></div>
+      </div>
+    </div>
+    <div>
+      <div class="sec-hdr">
+        <h2>Daily Habits</h2>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--text2)" id="habit-completion"></div>
+      </div>
+      <div id="habit-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ FOCUS ════════════ -->
+<div class="page" id="page-focus">
+  <div class="two-col">
+    <div>
+      <div class="card" style="text-align:center;padding:24px 20px">
+        <div class="section-label" style="justify-content:center;margin-bottom:16px">🍅 Focus Timer</div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:20px" class="scroll-x">
+          <button class="session-chip active" onclick="setPomoMode('work',this)">25m Work</button>
+          <button class="session-chip" onclick="setPomoMode('short',this)">5m Break</button>
+          <button class="session-chip" onclick="setPomoMode('long',this)">15m Break</button>
+          <button class="session-chip" onclick="setPomoMode('deep',this)">50m Deep</button>
+        </div>
+        <div class="pomo-ring">
+          <svg viewBox="0 0 100 100"><circle class="pomo-bg" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/><circle class="pomo-fg" id="pomo-arc" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg>
+          <div class="pomo-center"><div class="pomo-time" id="pomo-display">25:00</div><div class="pomo-phase" id="pomo-phase">Work</div></div>
+        </div>
+        <div class="pomo-controls">
+          <button class="btn btn-ghost btn-sm" onclick="resetPomo()">↺</button>
+          <button class="btn btn-primary" onclick="togglePomo()" id="pomo-btn" style="min-width:90px">▶ Start</button>
+          <button class="btn btn-ghost btn-sm" onclick="skipPomo()">Skip ›</button>
+        </div>
+        <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--text3)">
+          Session <span id="pomo-count">1</span>/4 · <span id="pomo-total">0</span> today
+        </div>
+      </div>
+      <div class="card" id="affect-section" style="display:none">
+        <div class="section-label">💬 Affect Check-in</div>
+        <p style="font-size:.8rem;color:var(--text2);margin-bottom:6px">How do you feel about starting this session?<br><span style="font-size:.72rem;color:var(--text3)">(Research: naming your emotion reduces task aversion)</span></p>
+        <div class="affect-row">
+          <button class="affect-btn" onclick="pickAffect('Anxious 😟',this)">Anxious 😟</button>
+          <button class="affect-btn" onclick="pickAffect('Bored 😑',this)">Bored 😑</button>
+          <button class="affect-btn" onclick="pickAffect('Overwhelmed 😤',this)">Overwhelmed 😤</button>
+          <button class="affect-btn" onclick="pickAffect('Distracted 🦋',this)">Distracted 🦋</button>
+          <button class="affect-btn" onclick="pickAffect('Tired 😴',this)">Tired 😴</button>
+          <button class="affect-btn" onclick="pickAffect('Focused 🎯',this)">Focused 🎯</button>
+        </div>
+        <div id="affect-reframe" style="margin-top:10px;display:none" class="coach-bubble"></div>
+        <button class="btn btn-primary btn-full" onclick="startFocusSession()" id="start-focus-btn" style="margin-top:10px" disabled>Start Session</button>
+      </div>
+      <div class="card">
+        <div class="section-label">🎯 Focus On</div>
+        <select id="pomo-task-sel" style="margin-bottom:0">
+          <option value="">— Select a task to focus on —</option>
+        </select>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="section-label">🧹 Distraction Parking Lot</div>
+        <p style="font-size:.74rem;color:var(--text3);margin-bottom:10px">Thoughts that pop up during focus? Park them here — don't derail.</p>
+        <div style="display:flex;gap:8px">
+          <input id="distraction-input" placeholder="Quick thought…" onkeydown="if(event.key==='Enter')parkDistraction()" style="flex:1"/>
+          <button class="btn btn-ghost btn-sm" onclick="parkDistraction()">Park</button>
+        </div>
+        <div id="distraction-list" style="margin-top:12px"></div>
+      </div>
+      <div class="card">
+        <div class="section-label">📈 Today's Focus</div>
+        <div id="focus-stats" style="font-size:.82rem;line-height:1.8;color:var(--text2)"></div>
+      </div>
+      <div class="card">
+        <div class="section-label">🧠 Science Tip</div>
+        <div id="science-tip" class="insight-coach" style="margin-bottom:0"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MESSAGES ════════════ -->
+<div class="page" id="page-messages">
+  <div class="two-col">
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="section-label">📥 Import Messages</div>
+        <div class="fg"><label>Platform</label>
+          <select id="msg-platform">
+            <option value="discord">Discord</option>
+            <option value="slack">Slack</option>
+            <option value="gmail">Gmail (paste)</option>
+          </select>
+        </div>
+        <div class="fg"><label>Your name/handle</label><input id="msg-username" placeholder="@daniella"/></div>
+        <div class="fg"><label>Paste messages</label>
+          <textarea id="msg-paste" style="min-height:140px;font-family:'JetBrains Mono',monospace;font-size:.72rem" placeholder="[10:34 AM] john: @daniella can you review the PR by Friday?&#10;[10:40 AM] sarah: @daniella the demo is moved to Thursday&#10;[11:01 AM] mike: @daniella please update the experiment log"></textarea>
+        </div>
+        <button class="btn btn-ai btn-full" onclick="parseMessages()" id="msg-parse-btn">🤖 Extract Tasks &amp; Reminders</button>
+      </div>
+      <div class="card">
+        <div class="section-label">📧 Connect Gmail</div>
+        <div class="fg"><label>Gmail OAuth Client ID</label><input id="gmail-client-id" placeholder="your-id.apps.googleusercontent.com" style="font-family:'JetBrains Mono',monospace;font-size:.72rem"/></div>
+        <button class="btn btn-teal btn-full" onclick="connectGmail()" id="gmail-btn">Connect Gmail</button>
+        <p style="font-size:.68rem;color:var(--text3);margin-top:8px;line-height:1.5">Get a free Client ID at <a href="https://console.cloud.google.com" target="_blank" style="color:var(--teal)">console.cloud.google.com</a> → APIs → Gmail API → OAuth credentials (Web app). Set redirect URI to this page's URL.</p>
+        <div id="gmail-status" style="margin-top:8px;font-size:.72rem;color:var(--sage);display:none">✓ Gmail connected</div>
+      </div>
+      <div class="card">
+        <div class="section-label">⏰ Reply Settings</div>
+        <div class="fg"><label>Remind after</label>
+          <select id="reply-timeout"><option value="30">30 min</option><option value="60" selected>1 hour</option><option value="180">3 hours</option><option value="480">8 hours</option></select>
+        </div>
+        <button class="btn btn-ghost btn-full btn-sm" onclick="checkReplies()">Check now</button>
+      </div>
+    </div>
+    <div>
+      <div class="sec-hdr">
+        <h2>Message Inbox</h2>
+        <div class="chips">
+          <button class="chip active" onclick="setMsgF('all',this)">All</button>
+          <button class="chip" onclick="setMsgF('reply',this)">Needs Reply</button>
+          <button class="chip" onclick="setMsgF('discord',this)">Discord</button>
+          <button class="chip" onclick="setMsgF('slack',this)">Slack</button>
+          <button class="chip" onclick="setMsgF('gmail',this)">Gmail</button>
+        </div>
+      </div>
+      <div id="msg-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ GOALS ════════════ -->
+<div class="page" id="page-goals">
+  <div class="two-col">
+    <div class="card">
+      <div class="section-label">🎯 New Goal</div>
+      <div class="fg"><label>Goal title *</label><input id="g-title" placeholder="e.g. Submit nitrogen cycling paper"/></div>
+      <div class="fg"><label>Category</label>
+        <select id="g-cat"><option value="research">🔬 Research</option><option value="startup">🚀 Startup</option><option value="personal">🌿 Personal</option></select>
+      </div>
+      <div class="fg"><label>Description (AI uses this to assign tasks)</label><textarea id="g-desc" placeholder="Describe this goal…" style="min-height:72px"></textarea></div>
+      <div class="fg"><label>Deadline</label><input type="date" id="g-deadline"/></div>
+      <div class="fg"><label>Color</label>
+        <select id="g-color"><option value="teal">Teal</option><option value="amber">Amber</option><option value="sage">Green</option><option value="violet">Violet</option><option value="coral">Red</option></select>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="addGoal()">+ Add Goal</button>
+    </div>
+    <div>
+      <div class="sec-hdr"><h2>Your Goals</h2></div>
+      <div id="goal-list" class="goals-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ INSIGHTS ════════════ -->
+<div class="page" id="page-insights">
+  <div class="page-hdr"><h1>📊 Insights</h1><p>Your weekly patterns and AI-powered coaching.</p></div>
+  <div id="ai-weekly-insight" style="margin-bottom:18px"></div>
+  <div class="ins-row" id="ins-stats"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px" class="two-col-ins">
+    <div class="card">
+      <div class="section-label">✅ Tasks Completed (7 days)</div>
+      <div style="display:flex;align-items:flex-end;gap:5px;height:90px" id="week-bars"></div>
+      <div style="display:flex;gap:5px;margin-top:4px" id="week-labels"></div>
+    </div>
+    <div class="card">
+      <div class="section-label">🌱 Habit Consistency (30 days)</div>
+      <div class="habit-heatmap" id="habit-heatmap"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-label">🎯 Goal Progress</div>
+    <div id="goal-progress-list"></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="section-label">💬 AI Weekly Coach</div>
+    <button class="btn btn-ai btn-sm" onclick="getWeeklyCoach()" id="coach-btn" style="margin-bottom:12px">🤖 Get Personalized Advice</button>
+    <div id="coach-output" style="font-size:.84rem;line-height:1.7;color:var(--text2)"></div>
+  </div>
+</div>
+
+<!-- ════════════ SETTINGS ════════════ -->
+<div class="page" id="page-settings">
+  <div style="max-width:580px;margin:0 auto">
+    <div class="page-hdr"><h1>⚙️ Settings</h1></div>
+    <div class="card">
+      <div class="section-label">🤖 AI</div>
+      <div class="fg"><label>Anthropic API Key (stored locally)</label>
+        <input type="password" id="api-key-input" placeholder="sk-ant-…" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/>
+      </div>
+      <p style="font-size:.7rem;color:var(--text3);margin-bottom:10px">Get yours free at <a href="https://console.anthropic.com" target="_blank" style="color:var(--teal)">console.anthropic.com</a>. Never sent anywhere except Anthropic.</p>
+      <button class="btn btn-primary" onclick="saveApiKey()">Save Key</button>
+    </div>
+    <div class="card">
+      <div class="section-label">👤 Profile</div>
+      <div class="fg"><label>Your name</label><input id="s-name" placeholder="Daniella"/></div>
+      <div class="fg"><label>Your roles (helps AI understand context)</label><input id="s-roles" placeholder="PhD researcher, startup founder"/></div>
+      <div class="fg"><label>Morning briefing time</label><input type="time" id="s-brief-time" value="07:00"/></div>
+      <button class="btn btn-ghost" onclick="saveSettings()">Save Profile</button>
+    </div>
+    <div class="card">
+      <div class="section-label">🔔 Notifications</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+        <div><div style="font-weight:600;font-size:.86rem">Browser reminders</div><div style="font-size:.72rem;color:var(--text3)">Task due &amp; reply reminders</div></div>
+        <button class="toggle" id="notif-toggle" onclick="toggleNotif()"></button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-label">📦 Data</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="exportData()">Export JSON</button>
+        <button class="btn btn-danger btn-sm" onclick="clearAll()">Clear All Data</button>
+      </div>
+    </div>
+    <div class="card" style="font-size:.75rem;color:var(--text3);line-height:1.7">
+      <div class="section-label">ℹ️ Install as App</div>
+      <p><strong style="color:var(--text2)">iPhone/iPad:</strong> Open in Safari → Share button → "Add to Home Screen"</p>
+      <p style="margin-top:4px"><strong style="color:var(--text2)">Android:</strong> Open in Chrome → Menu → "Add to Home Screen" or "Install App"</p>
+      <p style="margin-top:4px"><strong style="color:var(--text2)">Desktop (Chrome/Edge):</strong> Click the install icon in the address bar, or use menu → "Install TaskFlow AI"</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /app -->
+
+<!-- ── COACH MODAL ───────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="coach-modal">
+  <div class="modal">
+    <div class="modal-title" id="coach-modal-title">AI Coach</div>
+    <div id="coach-modal-body"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-ghost" onclick="closeModal('coach-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════
+let S = {
+  tasks:[],goals:[],habits:[],habitLogs:{},messages:[],
+  distractions:[],focusSessions:[],
+  settings:{apiKey:'',name:'',roles:'',briefTime:'07:00',notif:false,gmailToken:'',gmailClientId:''},
+  ui:{priority:'med',filterCat:'all',filterGoal:'all',sortMode:'due',msgFilter:'all',capturedTasks:[],pomoMode:'work',pomoRunning:false,pomoSecs:1500,pomoTotal:1500,pomoCount:0,pomoDayTotal:0,pomoInterval:null,affectPicked:'',currentTab:'tasks'}
+};
+
+function load(){try{const d=localStorage.getItem('tf_v3');if(d){const p=JSON.parse(d);S={...S,...p,ui:{...S.ui,...(p.ui||{})}}}}catch(e){}}
+function save(){try{localStorage.setItem('tf_v3',JSON.stringify(S))}catch(e){}}
+
+// ════════════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════════════
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const cE=(tag,cls='')=>{const el=document.createElement(tag);if(cls)el.className=cls;return el};
+const $=id=>document.getElementById(id);
+const now=()=>new Date();
+const todayKey=()=>now().toISOString().slice(0,10);
+const fmtDue=due=>{if(!due)return'';const d=new Date(due),n=now(),t=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});const date=d.toLocaleDateString([],{month:'short',day:'numeric'});if(d.toDateString()===n.toDateString())return`Today ${t}`;const tm=new Date(n);tm.setDate(n.getDate()+1);if(d.toDateString()===tm.toDateString())return`Tomorrow ${t}`;return`${date} ${t}`};
+const catEmoji=c=>({research:'🔬',startup:'🚀',personal:'🌿',admin:'📋'}[c]||'📌');
+const colorVar=c=>({teal:'var(--teal)',amber:'var(--amber)',sage:'var(--sage)',violet:'var(--violet)',coral:'var(--coral)'}[c]||'var(--teal)');
+
+function toast(msg,dur=2800){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur)}
+
+// ════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════════
+function go(tab){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  $('page-'+tab).classList.add('active');
+  $('nb-'+tab).classList.add('active');
+  S.ui.currentTab=tab;
+  if(tab==='tasks'){renderTasks();renderMorning()}
+  if(tab==='habits'){renderHabits()}
+  if(tab==='goals'){renderGoals()}
+  if(tab==='messages'){renderMessages()}
+  if(tab==='focus'){renderFocusStats();renderDistractions();renderScienceTip();populatePomoTaskSel()}
+  if(tab==='insights'){renderInsights()}
+  if(tab==='settings'){loadSettings()}
+}
+
+// ════════════════════════════════════════════════════════════════
+// AI HELPER
+// ════════════════════════════════════════════════════════════════
+async function ai(system,user){
+  const key=S.settings.apiKey;
+  if(!key){toast('⚠ Add API key in Settings');throw new Error('no key')}
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1200,system,messages:[{role:'user',content:user}]})
+  });
+  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API error')}
+  return(await r.json()).content[0].text;
+}
+
+const goalsCtx=()=>S.goals.map(g=>`ID:${g.id} "${g.title}" (${g.cat}) deadline:${g.deadline||'none'} desc:"${g.desc||''}"`).join('\n')||'No goals set.';
+const userCtx=()=>`Name:${S.settings.name||'user'}, Roles:${S.settings.roles||'researcher'}`;
+const todayDateStr=()=>now().toISOString();
+
+function parseJSON(raw){return JSON.parse(raw.replace(/```json|```/g,'').trim())}
+
+// ════════════════════════════════════════════════════════════════
+// TASKS
+// ════════════════════════════════════════════════════════════════
+function setPri(p){
+  S.ui.priority=p;
+  document.querySelectorAll('.pri-btn').forEach(b=>{b.className='pri-btn';if(b.dataset.p===p)b.classList.add(p==='low'?'pl':p==='med'?'pm':'ph')});
+}
+
+function addTask(){
+  const title=$('t-title').value.trim();
+  if(!title){toast('Enter a task title');return}
+  const task={id:Date.now()+Math.random(),title,cat:$('t-cat').value,goalId:$('t-goal').value||null,project:$('t-project').value.trim(),due:$('t-due').value,priority:S.ui.priority,note:$('t-note').value.trim(),remind:parseInt($('t-remind').value),done:false,source:'manual',created:Date.now(),implIntention:''};
+  S.tasks.push(task);save();scheduleReminder(task);renderTasks();
+  $('t-title').value='';$('t-note').value='';$('t-project').value='';$('t-due').value='';$('t-goal').value='';
+  setPri('med');toast('✓ Task added');
+}
+
+async function aiSmartTask(){
+  const title=$('t-title').value.trim();
+  if(!title){toast('Type a task first');return}
+  const btn=$('ai-parse-btn');btn.disabled=true;btn.innerHTML='<span class="spin"></span>';
+  try{
+    const sys=`You are a smart task assistant for a researcher/startup founder. Given a task and goals, return ONLY valid JSON:
+{"title":"cleaned title","cat":"research|startup|personal|admin","goalId":"id or null","project":"short name or null","priority":"low|med|high","dueISO":"ISO datetime or null","note":"helpful context or null","implIntention":"When [specific time/situation], I will [specific action] for [duration] — a concrete implementation intention"}
+User: ${userCtx()}\nGoals:\n${goalsCtx()}`;
+    const raw=await ai(sys,`Task: "${title}"\nToday: ${todayDateStr()}`);
+    const j=parseJSON(raw);
+    $('t-title').value=j.title||title;
+    if(j.cat)$('t-cat').value=j.cat;
+    if(j.goalId)$('t-goal').value=j.goalId;
+    if(j.project)$('t-project').value=j.project;
+    if(j.priority)setPri(j.priority);
+    if(j.dueISO){const d=new Date(j.dueISO);$('t-due').value=d.toISOString().slice(0,16)}
+    if(j.note)$('t-note').value=j.note;
+    if(j.implIntention){const n=document.createElement('div');n.className='impl-tag';n.textContent='💡 '+j.implIntention;const f=$('t-title').parentNode.parentNode;f.appendChild(n);setTimeout(()=>n.remove(),8000)}
+    toast('✨ AI filled task details');
+  }catch(e){toast('AI: '+e.message)}
+  btn.disabled=false;btn.innerHTML='🤖';
+}
+
+function toggleDone(id){const t=S.tasks.find(t=>t.id===id);if(t){t.done=!t.done;save();renderTasks()}}
+function deleteTask(id){S.tasks=S.tasks.filter(t=>t.id!==id);save();renderTasks();toast('Removed')}
+
+function setF(type,val,el){
+  if(type==='cat'){S.ui.filterCat=val;document.querySelectorAll('#cat-filters .chip').forEach(c=>c.classList.remove('active'))}
+  else{S.ui.filterGoal=val;document.querySelectorAll('#goal-filter-chips .chip').forEach(c=>c.classList.remove('active'))}
+  el.classList.add('active');renderTasks();
+}
+
+function setSort(s,el){S.ui.sortMode=s;document.querySelectorAll('#sort-chips .chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTasks()}
+
+function renderTasks(){
+  const n=now();const search=($('task-search')?.value||'').toLowerCase();
+  let tasks=S.tasks.filter(t=>{
+    if(S.ui.filterCat==='done')return t.done;
+    if(S.ui.filterCat!=='all'&&t.cat!==S.ui.filterCat)return false;
+    if(S.ui.filterGoal!=='all'&&t.goalId!==S.ui.filterGoal)return false;
+    if(t.done&&S.ui.filterCat!=='done')return false;
+    if(search&&!t.title.toLowerCase().includes(search)&&!(t.project||'').toLowerCase().includes(search)&&!(t.note||'').toLowerCase().includes(search))return false;
+    return true;
+  });
+  if(S.ui.sortMode==='due')tasks.sort((a,b)=>{if(!a.due&&!b.due)return 0;if(!a.due)return 1;if(!b.due)return-1;return new Date(a.due)-new Date(b.due)});
+  else if(S.ui.sortMode==='priority'){const pv={high:0,med:1,low:2};tasks.sort((a,b)=>pv[a.priority]-pv[b.priority])}
+  else tasks.sort((a,b)=>(a.goalId||'').localeCompare(b.goalId||''));
+  // stats
+  const pend=S.tasks.filter(t=>!t.done);
+  const tod=new Date(n);tod.setHours(23,59,59);
+  const wk=new Date(n);wk.setDate(n.getDate()+7);
+  $('st-ov').textContent=pend.filter(t=>t.due&&new Date(t.due)<n).length;
+  $('st-td').textContent=pend.filter(t=>t.due&&new Date(t.due)<=tod&&new Date(t.due)>=n).length;
+  $('st-wk').textContent=pend.filter(t=>t.due&&new Date(t.due)<=wk&&new Date(t.due)>tod).length;
+  $('st-dn').textContent=S.tasks.filter(t=>t.done).length;
+  const ov=pend.filter(t=>t.due&&new Date(t.due)<n).length;
+  const tsOv=$('ts-overdue');if(tsOv){tsOv.textContent=ov+' overdue';tsOv.style.display=ov>0?'':'none'}
+  $('ts-today').textContent=pend.filter(t=>t.due&&new Date(t.due)<=tod&&new Date(t.due)>=n).length+' today';
+  const list=$('task-list');list.innerHTML='';
+  if(!tasks.length){list.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>No tasks. Add one or use ⚡ Capture!</p></div>';return}
+  if(S.ui.sortMode==='due'){
+    const groups={};
+    tasks.forEach(t=>{let lbl;if(!t.due)lbl='No Due Date';else{const d=new Date(t.due),diff=Math.floor((d-n)/86400000);if(d<n)lbl='⚠ Overdue';else if(d.toDateString()===n.toDateString())lbl='Today';else if(diff<2)lbl='Tomorrow';else if(diff<7)lbl='This Week';else if(diff<30)lbl='This Month';else lbl='Later';}if(!groups[lbl])groups[lbl]=[];groups[lbl].push(t)});
+    ['⚠ Overdue','Today','Tomorrow','This Week','This Month','Later','No Due Date'].forEach(g=>{if(groups[g])renderGroup(g,groups[g],list,n)});
+  } else if(S.ui.sortMode==='goal'){
+    const groups={};tasks.forEach(t=>{const g=S.goals.find(g=>g.id===t.goalId);const key=g?g.title:'No Goal';if(!groups[key])groups[key]=[];groups[key].push(t)});
+    Object.entries(groups).forEach(([g,ts])=>renderGroup(g,ts,list,n));
+  } else renderGroup('Tasks',tasks,list,n);
+}
+
+function renderGroup(lbl,tasks,cont,n){
+  const wrap=document.createElement('div');
+  const hdr=document.createElement('div');
+  hdr.className='group-hdr'+(lbl==='⚠ Overdue'?' g-overdue':lbl==='Today'?' g-today':'');
+  hdr.innerHTML=`${lbl} <span class="cnt">${tasks.length}</span>`;
+  wrap.appendChild(hdr);
+  tasks.forEach(t=>{
+    const goal=S.goals.find(g=>g.id===t.goalId);
+    const isOv=t.due&&new Date(t.due)<n&&!t.done;
+    const card=document.createElement('div');
+    card.className=`task-card p-${t.priority}${t.done?' done':''}`;
+    card.innerHTML=`
+      <div class="task-check" onclick="toggleDone(${t.id})">${t.done?'<svg width="9" height="9" viewBox="0 0 10 10"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="#111008" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>':''}</div>
+      <div class="task-body">
+        <div class="task-title">${esc(t.title)}</div>
+        <div class="task-meta">
+          <span class="pill pill-${t.cat}">${catEmoji(t.cat)} ${t.cat}</span>
+          ${goal?`<span class="pill pill-goal">🎯 ${esc(goal.title.substring(0,22))}</span>`:''}
+          ${t.project?`<span class="pill pill-src">📁 ${esc(t.project)}</span>`:''}
+          ${t.due?`<span class="pill ${isOv?'pill-overdue':'pill-time'}">📅 ${fmtDue(t.due)}</span>`:''}
+        </div>
+        ${t.note?`<div class="task-note">${esc(t.note)}</div>`:''}
+        ${t.implIntention?`<div class="task-impl">💡 ${esc(t.implIntention)}</div>`:''}
+      </div>
+      <div class="task-actions">
+        <button class="icon-btn" onclick="deleteTask(${t.id})"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+      </div>`;
+    wrap.appendChild(card);
+  });
+  cont.appendChild(wrap);
+}
+
+function populateGoalSelects(){
+  ['t-goal'].forEach(id=>{const s=$(id);if(!s)return;const v=s.value;s.innerHTML='<option value="">— None —</option>';S.goals.forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.title;s.appendChild(o)});if(v)s.value=v});
+  const fc=$('goal-filter-chips');if(!fc)return;
+  fc.innerHTML='<button class="chip '+(S.ui.filterGoal==='all'?'active':'')+'" onclick="setF(\'goal\',\'all\',this)">All</button>';
+  S.goals.forEach(g=>{const b=document.createElement('button');b.className='chip'+(S.ui.filterGoal===g.id?' active':'');b.textContent=g.title.substring(0,16);b.onclick=function(){setF('goal',g.id,this)};fc.appendChild(b)});
+}
+
+// ════════════════════════════════════════════════════════════════
+// CAPTURE
+// ════════════════════════════════════════════════════════════════
+async function quickCapture(){
+  const input=$('quick-input').value.trim();if(!input)return;
+  const btn=$('quick-btn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Parsing…';
+  try{
+    const sys=`Return ONLY JSON array of 1-3 tasks. Each: {"title":"","cat":"research|startup|personal|admin","goalId":"id or null","project":"or null","priority":"low|med|high","dueISO":"or null","note":"or null","implIntention":"When [situation], I will [action] — implementation intention"}\nUser: ${userCtx()}\nGoals:\n${goalsCtx()}`;
+    const raw=await ai(sys,`Idea: "${input}"\nToday: ${todayDateStr()}`);
+    S.ui.capturedTasks=parseJSON(raw);showCaptureResults(S.ui.capturedTasks);
+    $('quick-input').value='';go('capture');
+  }catch(e){toast('AI: '+e.message)}
+  btn.disabled=false;btn.innerHTML='🤖 Parse';
+}
+
+async function brainDump(){
+  const text=$('brain-dump').value.trim();if(!text){toast('Write something first');return}
+  const btn=$('dump-btn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Organizing…';
+  try{
+    const sys=`Extract ALL actionable tasks from the brain dump. Return ONLY JSON array. Each: {"title":"","cat":"research|startup|personal|admin","goalId":"id or null","project":"or null","priority":"low|med|high","dueISO":"or null","note":"or null","implIntention":"When [specific situation], I will [specific action]"}\nUser: ${userCtx()}\nGoals:\n${goalsCtx()}\nBe thorough — extract every actionable item.`;
+    const raw=await ai(sys,`Brain dump:\n${text}\nToday: ${todayDateStr()}`);
+    S.ui.capturedTasks=parseJSON(raw);showCaptureResults(S.ui.capturedTasks);
+  }catch(e){toast('AI: '+e.message)}
+  btn.disabled=false;btn.innerHTML='🤖 Organize with AI';
+}
+
+function showCaptureResults(tasks){
+  const cont=$('capture-list');cont.innerHTML='';
+  tasks.forEach((t,i)=>{
+    const goal=S.goals.find(g=>g.id===t.goalId);
+    const d=document.createElement('div');d.className='ai-result';
+    d.innerHTML=`
+      <div class="ai-result-hdr">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1">
+          <input type="checkbox" checked id="cap-${i}" style="width:15px;height:15px;accent-color:var(--teal)"/>
+          <span style="font-weight:600;font-size:.86rem">${esc(t.title)}</span>
+        </label>
+        <div class="pri-row" style="width:auto;gap:4px;flex-shrink:0">
+          <button class="pri-btn ${t.priority==='low'?'pl':''}" onclick="updCap(${i},'priority','low')" style="padding:2px 7px;font-size:.62rem">Low</button>
+          <button class="pri-btn ${t.priority==='med'?'pm':''}" onclick="updCap(${i},'priority','med')" style="padding:2px 7px;font-size:.62rem">Med</button>
+          <button class="pri-btn ${t.priority==='high'?'ph':''}" onclick="updCap(${i},'priority','high')" style="padding:2px 7px;font-size:.62rem">High</button>
+        </div>
+      </div>
+      <div class="task-meta">
+        <span class="pill pill-${t.cat}">${catEmoji(t.cat)} ${t.cat}</span>
+        ${goal?`<span class="pill pill-goal">🎯 ${esc(goal.title.substring(0,20))}</span>`:''}
+        ${t.project?`<span class="pill pill-src">📁 ${esc(t.project)}</span>`:''}
+        ${t.dueISO?`<span class="pill pill-time">📅 ${fmtDue(t.dueISO)}</span>`:'<span class="pill pill-time" style="opacity:.4">No date</span>'}
+      </div>
+      ${t.implIntention?`<div class="impl-tag">💡 ${esc(t.implIntention)}</div>`:''}
+      ${t.note?`<div class="task-note" style="margin-top:5px">${esc(t.note)}</div>`:''}`;
+    cont.appendChild(d);
+  });
+  $('capture-results').style.display='block';
+}
+
+function updCap(i,f,v){S.ui.capturedTasks[i][f]=v;showCaptureResults(S.ui.capturedTasks)}
+
+function addAllCaptured(){
+  let n=0;
+  S.ui.capturedTasks.forEach((t,i)=>{
+    const ch=$(`cap-${i}`);if(!ch||!ch.checked)return;
+    S.tasks.push({id:Date.now()+Math.random(),title:t.title,cat:t.cat,goalId:t.goalId||null,project:t.project||'',due:t.dueISO||'',priority:t.priority,note:t.note||'',implIntention:t.implIntention||'',remind:30,done:false,source:'capture',created:Date.now()});
+    n++;
+  });
+  save();dismissCapture();toast(`✓ Added ${n} task${n!==1?'s':''}`);renderTasks();
+}
+function dismissCapture(){$('capture-results').style.display='none';$('capture-list').innerHTML='';S.ui.capturedTasks=[]}
+
+// ════════════════════════════════════════════════════════════════
+// HABITS
+// ════════════════════════════════════════════════════════════════
+function addHabit(){
+  const name=$('h-name').value.trim();if(!name){toast('Enter habit name');return}
+  const habit={id:'h'+Date.now(),name,identity:$('h-identity').value.trim(),cat:$('h-cat').value,stack:$('h-stack').value.trim(),time:$('h-time').value,created:Date.now()};
+  S.habits.push(habit);save();renderHabits();
+  $('h-name').value='';$('h-identity').value='';$('h-stack').value='';$('h-time').value='';
+  toast('✓ Habit added');
+}
+
+function toggleHabit(id){
+  const key=todayKey();
+  if(!S.habitLogs[key])S.habitLogs[key]={};
+  S.habitLogs[key][id]=!S.habitLogs[key][id];
+  save();renderHabits();
+}
+
+function deleteHabit(id){S.habits=S.habits.filter(h=>h.id!==id);save();renderHabits();toast('Habit removed')}
+
+function getHabitStreak(habitId){
+  let streak=0,d=new Date();
+  for(let i=0;i<90;i++){
+    const k=d.toISOString().slice(0,10);
+    if(S.habitLogs[k]&&S.habitLogs[k][habitId])streak++;
+    else if(i>0)break;
+    d.setDate(d.getDate()-1);
+  }
+  return streak;
+}
+
+function renderHabits(){
+  const today=todayKey();
+  const log=S.habitLogs[today]||{};
+  const done=S.habits.filter(h=>log[h.id]).length;
+  const total=S.habits.length;
+  const pct=total?Math.round(done/total*100):0;
+  $('habits-date').textContent=now().toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'});
+  $('habit-completion').textContent=`${done}/${total} complete · ${pct}%`;
+  // progress bar
+  $('checkin-progress').innerHTML=`<div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${pct===100?'var(--sage)':pct>60?'var(--amber)':'var(--coral)'}"></div></div><div style="font-size:.72rem;color:var(--text3);margin-top:5px">${pct===100?'🎉 All done today!':pct>60?'📈 Great progress!':'💪 Keep going!'}</div>`;
+  const list=$('habit-list');list.innerHTML='';
+  if(!S.habits.length){list.innerHTML='<div class="empty"><div class="empty-icon">🌱</div><p>No habits yet. Add your first habit!</p></div>';return}
+  S.habits.forEach(h=>{
+    const isDone=!!log[h.id];const streak=getHabitStreak(h.id);
+    // last 7 days dots
+    const dots=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);const dd=(S.habitLogs[k]||{})[h.id];dots.push(`<div class="hdot ${i===0?'today':''} ${dd?'done':i===0&&isDone?'done':!dd&&i<6?'missed':''}" title="${k}"></div>`)}
+    const card=document.createElement('div');
+    card.className=`habit-card${isDone?' hc-done':''}`;
+    card.innerHTML=`
+      <div class="habit-check" onclick="toggleHabit('${h.id}')">${isDone?'✓':''}</div>
+      <div class="habit-body">
+        <div class="habit-name">${esc(h.name)}</div>
+        ${h.identity?`<div class="habit-identity">I am ${esc(h.identity)}</div>`:''}
+        ${h.stack?`<div style="font-size:.7rem;color:var(--text3);margin-top:2px">After: ${esc(h.stack)}</div>`:''}
+        <div class="habit-streak">🔥 ${streak} day streak <div class="habit-dots">${dots.join('')}</div></div>
+      </div>
+      <div class="habit-actions">
+        <button class="icon-btn" onclick="deleteHabit('${h.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// FOCUS / POMODORO
+// ════════════════════════════════════════════════════════════════
+const POMO_MODES={work:1500,short:300,long:900,deep:3000};
+const POMO_LABELS={work:'Work',short:'Short Break',long:'Long Break',deep:'Deep Work'};
+
+function setPomoMode(mode,el){
+  if(S.ui.pomoRunning)return;
+  S.ui.pomoMode=mode;S.ui.pomoTotal=POMO_MODES[mode];S.ui.pomoSecs=POMO_MODES[mode];
+  document.querySelectorAll('.session-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');updatePomoDisplay();
+  if(mode==='work'||mode==='deep'){$('affect-section').style.display='block'}else{$('affect-section').style.display='none'}
+}
+
+function updatePomoDisplay(){
+  const m=Math.floor(S.ui.pomoSecs/60),s=S.ui.pomoSecs%60;
+  $('pomo-display').textContent=`${m}:${String(s).padStart(2,'0')}`;
+  $('pomo-phase').textContent=POMO_LABELS[S.ui.pomoMode]||'Work';
+  const circ=276.5,pct=1-(S.ui.pomoSecs/S.ui.pomoTotal);
+  $('pomo-arc').style.strokeDashoffset=circ*(1-pct);
+  $('pomo-arc').style.stroke=S.ui.pomoSecs<=60?'var(--coral)':S.ui.pomoMode==='work'||S.ui.pomoMode==='deep'?'var(--amber)':'var(--teal)';
+}
+
+function togglePomo(){
+  if(S.ui.pomoMode==='work'||S.ui.pomoMode==='deep'){
+    if(!S.ui.affectPicked&&!S.ui.pomoRunning){
+      $('affect-section').style.display='block';
+      toast('Please check in with how you feel before starting 🧠');return;
+    }
+  }
+  if(S.ui.pomoRunning){pausePomo()}else{startPomo()}
+}
+
+function startPomo(){
+  S.ui.pomoRunning=true;$('pomo-btn').textContent='⏸ Pause';
+  S.ui.pomoInterval=setInterval(()=>{
+    S.ui.pomoSecs--;updatePomoDisplay();
+    if(S.ui.pomoSecs<=0){completePomo()}
+  },1000);
+}
+
+function pausePomo(){S.ui.pomoRunning=false;$('pomo-btn').textContent='▶ Resume';clearInterval(S.ui.pomoInterval)}
+function resetPomo(){pausePomo();S.ui.pomoSecs=S.ui.pomoTotal;S.ui.affectPicked='';updatePomoDisplay();$('pomo-btn').textContent='▶ Start';document.querySelectorAll('.affect-btn').forEach(b=>b.classList.remove('picked'));$('affect-reframe').style.display='none';$('start-focus-btn').disabled=true}
+
+function completePomo(){
+  clearInterval(S.ui.pomoInterval);S.ui.pomoRunning=false;
+  if(S.ui.pomoMode==='work'||S.ui.pomoMode==='deep'){
+    S.ui.pomoCount++;S.ui.pomoDayTotal++;
+    S.focusSessions.push({date:todayDateStr(),mode:S.ui.pomoMode,dur:S.ui.pomoTotal,task:$('pomo-task-sel').value||'',completed:true});
+    save();
+  }
+  $('pomo-btn').textContent='▶ Start';
+  S.ui.pomoSecs=S.ui.pomoTotal;
+  $('pomo-count').textContent=S.ui.pomoCount;
+  $('pomo-total').textContent=S.ui.pomoDayTotal;
+  updatePomoDisplay();
+  if(S.settings.notif&&Notification.permission==='granted')new Notification('TaskFlow',{body:S.ui.pomoMode==='work'?`✓ Pomodoro done! Time for a break 🎉`:'Break over — ready to focus? 💪'});
+  toast(S.ui.pomoMode==='work'?'🎉 Session complete! Take a break.':'Break over. Back to work!');
+  S.ui.affectPicked='';
+  renderFocusStats();
+}
+
+function skipPomo(){resetPomo()}
+
+function pickAffect(emotion,el){
+  S.ui.affectPicked=emotion;
+  document.querySelectorAll('.affect-btn').forEach(b=>b.classList.remove('picked'));
+  el.classList.add('picked');
+  // Science-based reframe
+  const reframes={
+    'Anxious 😟':'Named it! Research shows simply labeling anxiety as "anxiety" reduces the amygdala response. Try: "I\'m choosing to feel this discomfort for 25 minutes — and that\'s okay."',
+    'Bored 😑':'Boredom often means a task feels below your skill level. Try: Make it a game — can you finish one more sub-task than last time?',
+    'Overwhelmed 😤':'The task feels large. Break it: What\'s the ONE smallest action you could do right now? Just that.',
+    'Distracted 🦋':'Your brain is seeking novelty dopamine. The parking lot below is for those thoughts. Just write them down and come back.',
+    'Tired 😴':'Consider a 5-min break first. If you start, commit to just 10 minutes — momentum often follows.',
+    'Focused 🎯':'Perfect. Channel it. Protect this state — turn off notifications.'
+  };
+  const r=$('affect-reframe');r.style.display='block';r.textContent=reframes[emotion]||'Great. You\'ve got this.';
+  $('start-focus-btn').disabled=false;
+}
+
+function startFocusSession(){startPomo()}
+
+function parkDistraction(){
+  const input=$('distraction-input');const val=input.value.trim();if(!val)return;
+  S.distractions.push({id:Date.now(),text:val,parked:Date.now()});
+  input.value='';save();renderDistractions();
+}
+
+function clearDistraction(id){S.distractions=S.distractions.filter(d=>d.id!==id);save();renderDistractions()}
+
+function renderDistractions(){
+  const list=$('distraction-list');list.innerHTML='';
+  if(!S.distractions.length){list.innerHTML='<div style="font-size:.74rem;color:var(--text3);text-align:center;padding:12px">Nothing parked yet 🧹</div>';return}
+  S.distractions.slice().reverse().forEach(d=>{
+    const div=document.createElement('div');div.className='distraction-item';
+    div.innerHTML=`<span style="flex:1;font-size:.82rem">${esc(d.text)}</span><button class="icon-btn" onclick="clearDistraction(${d.id})">✕</button>`;
+    list.appendChild(div);
+  });
+}
+
+function renderFocusStats(){
+  const today=todayKey();const todaySessions=S.focusSessions.filter(s=>s.date.startsWith(today));
+  const totalMins=Math.round(todaySessions.reduce((a,s)=>a+(s.dur/60),0));
+  $('focus-stats').innerHTML=`<div>Sessions today: <strong style="color:var(--amber)">${todaySessions.length}</strong></div><div>Focus time: <strong style="color:var(--teal)">${totalMins} minutes</strong></div><div>Pomodoros: <strong style="color:var(--amber)">${S.ui.pomoDayTotal}</strong></div>${S.ui.pomoDayTotal>=4?'<div style="color:var(--sage);margin-top:4px">🎯 Deep work target reached!</div>':''}`;
+}
+
+function populatePomoTaskSel(){
+  const sel=$('pomo-task-sel');const v=sel.value;
+  sel.innerHTML='<option value="">— Select a task to focus on —</option>';
+  S.tasks.filter(t=>!t.done).forEach(t=>{const o=document.createElement('option');o.value=t.id;o.textContent=t.title.substring(0,50);sel.appendChild(o)});
+  if(v)sel.value=v;
+}
+
+const SCIENCE_TIPS=[
+  '🧠 <strong>47-second rule:</strong> The average worker self-interrupts after 47 seconds. Your Pomodoro protects the 25 minutes science says you need for deep thought.',
+  '💡 <strong>Implementation intentions</strong> increase follow-through by 200–300%. Use the 🤖 button to convert any task into "When X, I will Y at Z."',
+  '🔥 <strong>Habit streaks take 59–300 days</strong> to fully form — not 21. Be patient. Missing one day won\'t break your streak.',
+  '😌 <strong>Affect labeling works:</strong> Simply naming how you feel before a task activates your prefrontal cortex and calms the amygdala.',
+  '🎯 <strong>Procrastination is emotion regulation,</strong> not laziness. The brain avoids tasks tied to anxiety. Break it into one tiny first action.',
+  '⏸ <strong>23 minutes to recover</strong> from a single interruption. Protect your focus sessions like meetings.',
+  '🌱 <strong>Identity-based habits stick 32% better.</strong> "I am a researcher who writes every morning" > "I want to finish my paper."',
+  '📊 <strong>Temporal discounting:</strong> Your brain underestimates effort in the future. That\'s why tasks always feel harder when you start — not when you plan them.',
+];
+
+function renderScienceTip(){$('science-tip').innerHTML=SCIENCE_TIPS[Math.floor(Math.random()*SCIENCE_TIPS.length)]}
+
+// ════════════════════════════════════════════════════════════════
+// MESSAGES
+// ════════════════════════════════════════════════════════════════
+async function parseMessages(){
+  const text=$('msg-paste').value.trim();const platform=$('msg-platform').value;
+  const uname=$('msg-username').value.trim()||S.settings.name||'user';
+  if(!text){toast('Paste some messages first');return}
+  const btn=$('msg-parse-btn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Analyzing…';
+  try{
+    const sys=`Parse ${platform} messages. Find action items for ${uname} and reply needs. Return ONLY JSON:
+{"messages":[{"author":"","content":"","needsReply":bool,"replyReason":"or null","urgency":"high|med|low","extractedTask":{"title":"","priority":"low|med|high","dueISO":"or null","note":"or null"} or null}]}
+User goals:\n${goalsCtx()}`;
+    const raw=await ai(sys,`Platform:${platform}\nUser:${uname}\nMessages:\n${text}\nToday:${todayDateStr()}`);
+    const parsed=parseJSON(raw);
+    parsed.messages.forEach(m=>{
+      const msg={id:Date.now()+Math.random(),platform,author:m.author,content:m.content,needsReply:m.needsReply,replyReason:m.replyReason,urgency:m.urgency||'med',replied:false,addedAt:Date.now(),taskAdded:false};
+      S.messages.push(msg);
+      if(m.extractedTask){S.tasks.push({id:Date.now()+Math.random(),title:m.extractedTask.title,cat:'startup',goalId:null,project:platform,due:m.extractedTask.dueISO||'',priority:m.extractedTask.priority||'med',note:m.extractedTask.note||(` From ${m.author} via ${platform}`),implIntention:'',remind:60,done:false,source:platform,created:Date.now()});msg.taskAdded=true}
+    });
+    save();renderMessages();renderTasks();updateReplyBadge();
+    $('msg-paste').value='';
+    const nr=parsed.messages.filter(m=>m.needsReply).length;
+    const nt=parsed.messages.filter(m=>m.extractedTask).length;
+    toast(`✓ ${parsed.messages.length} messages · ${nt} tasks · ${nr} need reply`);
+    go('messages');
+  }catch(e){toast('AI: '+e.message)}
+  btn.disabled=false;btn.innerHTML='🤖 Extract Tasks & Reminders';
+}
+
+function markReplied(id){const m=S.messages.find(m=>m.id===id);if(m){m.replied=true;m.repliedAt=Date.now();save();renderMessages();updateReplyBadge();toast('✓ Marked replied')}}
+function deleteMsg(id){S.messages=S.messages.filter(m=>m.id!==id);save();renderMessages();updateReplyBadge()}
+
+function setMsgF(f,el){S.ui.msgFilter=f;document.querySelectorAll('#page-messages .chips .chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderMessages()}
+
+function renderMessages(){
+  const cont=$('msg-list');let msgs=[...S.messages];
+  if(S.ui.msgFilter==='reply')msgs=msgs.filter(m=>m.needsReply&&!m.replied);
+  else if(S.ui.msgFilter!=='all')msgs=msgs.filter(m=>m.platform===S.ui.msgFilter);
+  msgs.sort((a,b)=>b.addedAt-a.addedAt);cont.innerHTML='';
+  if(!msgs.length){cont.innerHTML='<div class="empty"><div class="empty-icon">💬</div><p>No messages. Paste Discord, Slack, or Gmail messages.</p></div>';return}
+  msgs.forEach(m=>{
+    const age=Math.floor((Date.now()-m.addedAt)/60000);
+    const ageStr=age<60?`${age}m ago`:`${Math.floor(age/60)}h ago`;
+    const u=!m.replied&&m.needsReply?(age>120?'new':age>30?'soon':'ok'):null;
+    const div=document.createElement('div');
+    div.className=`msg-card${m.needsReply&&!m.replied?' needs-reply':''}${m.replied?' replied':''}`;
+    div.innerHTML=`
+      <div class="msg-header">
+        <span class="pb pb-${m.platform}">${m.platform}</span>
+        <span class="msg-author">${esc(m.author)}</span>
+        ${u?`<span class="urgency-pill u-${u}">${u==='new'?'🔴 Reply needed':u==='soon'?'🟡 Reply soon':'🟢 Pending'}</span>`:''}
+        ${m.replied?'<span class="urgency-pill" style="background:var(--sage-dim);color:var(--sage)">✓ Replied</span>':''}
+        <span class="msg-time">${ageStr}</span>
+      </div>
+      <div class="msg-body">${esc(m.content)}</div>
+      ${m.replyReason?`<div style="font-size:.7rem;color:var(--text3);margin-top:4px;font-style:italic">${esc(m.replyReason)}</div>`:''}
+      ${m.taskAdded?`<div style="font-size:.7rem;color:var(--teal);margin-top:4px">✓ Task extracted to your list</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        ${m.needsReply&&!m.replied?`<button class="btn btn-teal btn-sm" onclick="markReplied(${m.id})">✓ Mark Replied</button>`:''}
+        <button class="btn btn-ghost btn-sm" onclick="deleteMsg(${m.id})">Delete</button>
+      </div>`;
+    cont.appendChild(div);
+  });
+}
+
+function updateReplyBadge(){
+  const n=S.messages.filter(m=>m.needsReply&&!m.replied).length;
+  const b=$('reply-badge');if(b){b.textContent=n;b.style.display=n>0?'':'none'}
+}
+
+function checkReplies(){
+  const to=parseInt($('reply-timeout').value)*60000;
+  const pending=S.messages.filter(m=>m.needsReply&&!m.replied&&(Date.now()-m.addedAt)>to);
+  if(!pending.length){toast('✓ No overdue replies');return}
+  toast(`⚠ ${pending.length} message${pending.length!==1?'s':''} waiting for reply!`,4000);
+  if(S.settings.notif&&Notification.permission==='granted')pending.forEach(m=>new Notification('Reply Reminder',{body:`${m.author}: "${m.content.substring(0,80)}"`}));
+}
+
+// ════════════════════════════════════════════════════════════════
+// GMAIL
+// ════════════════════════════════════════════════════════════════
+function connectGmail(){
+  const clientId=$('gmail-client-id').value.trim();
+  if(!clientId){toast('Enter your Gmail OAuth Client ID first');return}
+  S.settings.gmailClientId=clientId;save();
+  const scope='https://www.googleapis.com/auth/gmail.readonly';
+  const redirect=window.location.href.split('?')[0];
+  const url=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirect)}&response_type=token&scope=${encodeURIComponent(scope)}`;
+  window.location.href=url;
+}
+
+function handleGmailCallback(){
+  const hash=window.location.hash;
+  if(!hash.includes('access_token'))return;
+  const params=new URLSearchParams(hash.slice(1));
+  const token=params.get('access_token');
+  if(token){S.settings.gmailToken=token;save();window.location.hash='';toast('✓ Gmail connected!');$('gmail-status').style.display='block';fetchGmailMessages()}
+}
+
+async function fetchGmailMessages(){
+  if(!S.settings.gmailToken)return;
+  try{
+    const r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:unread&maxResults=20',{headers:{Authorization:`Bearer ${S.settings.gmailToken}`}});
+    if(!r.ok)return;
+    const data=await r.json();
+    if(!data.messages)return;
+    let fetched=0;
+    for(const {id} of data.messages.slice(0,10)){
+      const mr=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`,{headers:{Authorization:`Bearer ${S.settings.gmailToken}`}});
+      if(!mr.ok)continue;
+      const md=await mr.json();
+      const from=md.payload.headers.find(h=>h.name==='From')?.value||'Unknown';
+      const subject=md.payload.headers.find(h=>h.name==='Subject')?.value||'(no subject)';
+      if(!S.messages.find(m=>m.gmailId===id)){
+        S.messages.push({id:Date.now()+Math.random(),gmailId:id,platform:'gmail',author:from.replace(/<.*>/,'').trim(),content:subject,needsReply:false,replyReason:null,urgency:'med',replied:false,addedAt:Date.now(),taskAdded:false});
+        fetched++;
+      }
+    }
+    save();renderMessages();updateReplyBadge();
+    if(fetched)toast(`✓ Fetched ${fetched} unread Gmail emails`);
+  }catch(e){console.error('Gmail fetch error',e)}
+}
+
+// ════════════════════════════════════════════════════════════════
+// GOALS
+// ════════════════════════════════════════════════════════════════
+function addGoal(){
+  const title=$('g-title').value.trim();if(!title){toast('Enter goal title');return}
+  const goal={id:'g'+Date.now(),title,cat:$('g-cat').value,desc:$('g-desc').value.trim(),deadline:$('g-deadline').value,color:$('g-color').value,created:Date.now()};
+  S.goals.push(goal);save();renderGoals();populateGoalSelects();
+  $('g-title').value='';$('g-desc').value='';toast('✓ Goal added');
+}
+function deleteGoal(id){S.goals=S.goals.filter(g=>g.id!==id);save();renderGoals();populateGoalSelects()}
+
+function renderGoals(){
+  const cont=$('goal-list');cont.innerHTML='';
+  if(!S.goals.length){cont.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🎯</div><p>No goals. Add some to help AI assign your tasks.</p></div>';return}
+  S.goals.forEach(g=>{
+    const ts=S.tasks.filter(t=>t.goalId===g.id);
+    const dn=ts.filter(t=>t.done).length;
+    const pct=ts.length?Math.round(dn/ts.length*100):0;
+    const col=colorVar(g.color);
+    const dl=g.deadline?Math.ceil((new Date(g.deadline)-now())/86400000):null;
+    const card=document.createElement('div');card.className='goal-card';
+    card.innerHTML=`
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${col}"></div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+        <span class="pill pill-${g.cat}" style="margin-top:4px">${catEmoji(g.cat)} ${g.cat}</span>
+        <button class="icon-btn" onclick="deleteGoal('${g.id}')" style="opacity:.5;margin-left:8px">✕</button>
+      </div>
+      <div style="font-family:'Fraunces',serif;font-weight:600;font-size:.98rem;margin-bottom:4px">${esc(g.title)}</div>
+      ${g.desc?`<div style="font-size:.75rem;color:var(--text2);line-height:1.4;margin-bottom:8px">${esc(g.desc.substring(0,80))}${g.desc.length>80?'…':''}</div>`:''}
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--text3)">${dl!=null?(dl<0?`⚠ ${Math.abs(dl)}d overdue`:dl===0?'📅 Due today':`📅 ${dl}d left`):'No deadline'}</div>
+      <div class="goal-bar"><div class="goal-fill" style="width:${pct}%;background:${col}"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:.72rem;color:var(--text3)">
+        <span>${ts.length} tasks</span><span style="color:${col}">${pct}% done</span>
+      </div>`;
+    cont.appendChild(card);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// INSIGHTS
+// ════════════════════════════════════════════════════════════════
+function renderInsights(){
+  // Stats
+  const done=S.tasks.filter(t=>t.done).length;
+  const total=S.tasks.length;
+  const pct=total?Math.round(done/total*100):0;
+  const streaks=S.habits.map(h=>getHabitStreak(h.id));
+  const maxStreak=streaks.length?Math.max(...streaks):0;
+  const today=todayKey();const todayLog=S.habitLogs[today]||{};
+  const habitsDoneToday=S.habits.filter(h=>todayLog[h.id]).length;
+  const pomoToday=S.focusSessions.filter(s=>s.date.startsWith(today)).length;
+  $('ins-stats').innerHTML=`
+    <div class="ins-card"><div class="ins-big" style="color:var(--sage)">${pct}%</div><div class="ins-lbl">Tasks Completed</div></div>
+    <div class="ins-card"><div class="ins-big" style="color:var(--amber)">${maxStreak}</div><div class="ins-lbl">Best Habit Streak</div></div>
+    <div class="ins-card"><div class="ins-big" style="color:var(--teal)">${habitsDoneToday}/${S.habits.length}</div><div class="ins-lbl">Habits Today</div></div>
+    <div class="ins-card"><div class="ins-big" style="color:var(--violet)">${pomoToday}</div><div class="ins-lbl">Pomodoros Today</div></div>`;
+  // Week bars
+  const bars=$('week-bars');const lbls=$('week-labels');bars.innerHTML='';lbls.innerHTML='';
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  for(let i=6;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const k=d.toISOString().slice(0,10);
+    const cnt=S.tasks.filter(t=>t.done&&t.created&&new Date(t.created).toISOString().startsWith(k)).length;
+    const maxH=80;const h=Math.max(4,Math.min(maxH,cnt*16));
+    bars.innerHTML+=`<div class="wbar" style="height:${h}px" title="${cnt} tasks on ${k}"></div>`;
+    lbls.innerHTML+=`<div class="wbar-lbl" style="flex:1">${d.toLocaleDateString([],{weekday:'short'}).slice(0,3)}</div>`;
+  }
+  // Habit heatmap (30 days)
+  const hm=$('habit-heatmap');hm.innerHTML='';
+  for(let i=29;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);
+    const log=S.habitLogs[k]||{};const cnt=Object.values(log).filter(Boolean).length;
+    const pctH=S.habits.length?cnt/S.habits.length:0;
+    const col=pctH===0?'var(--s3)':pctH<0.4?'rgba(134,239,172,.25)':pctH<0.8?'rgba(134,239,172,.6)':'var(--sage)';
+    hm.innerHTML+=`<div class="hm-cell" style="background:${col}" title="${k}: ${cnt}/${S.habits.length} habits"></div>`;
+  }
+  // Goal progress
+  const gp=$('goal-progress-list');gp.innerHTML='';
+  S.goals.forEach(g=>{
+    const ts=S.tasks.filter(t=>t.goalId===g.id);const dn=ts.filter(t=>t.done).length;
+    const pct=ts.length?Math.round(dn/ts.length*100):0;const col=colorVar(g.color);
+    gp.innerHTML+=`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:5px"><span style="font-weight:600">${esc(g.title)}</span><span style="color:${col};font-family:'JetBrains Mono',monospace;font-size:.68rem">${pct}%</span></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${col}"></div></div><div style="font-size:.7rem;color:var(--text3);margin-top:3px">${dn}/${ts.length} tasks done</div></div>`;
+  });
+  if(!S.goals.length)gp.innerHTML='<div style="font-size:.8rem;color:var(--text3)">Add goals to see progress here.</div>';
+}
+
+async function getWeeklyCoach(){
+  const btn=$('coach-btn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Generating…';
+  try{
+    const done=S.tasks.filter(t=>t.done).length;
+    const pend=S.tasks.filter(t=>!t.done).length;
+    const ovd=S.tasks.filter(t=>!t.done&&t.due&&new Date(t.due)<now()).length;
+    const streaks=S.habits.map(h=>({name:h.name,streak:getHabitStreak(h.id)}));
+    const pomoTotal=S.focusSessions.length;
+    const replyPend=S.messages.filter(m=>m.needsReply&&!m.replied).length;
+    const sys=`You are a CBT-based productivity coach trained on procrastination neuroscience. Give warm, personalized, specific advice (not generic). Reference the data. Keep under 200 words. Use markdown-style bold for key points. Start with a specific observation about their patterns.`;
+    const text=await ai(sys,`User: ${userCtx()}\nStats:\n- Tasks done: ${done}, pending: ${pend}, overdue: ${ovd}\n- Habit streaks: ${JSON.stringify(streaks)}\n- Pomodoros completed: ${pomoTotal}\n- Pending replies: ${replyPend}\nGoals:\n${goalsCtx()}\nProvide weekly coaching advice.`);
+    $('coach-output').innerHTML=text.replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--amber)">$1</strong>').replace(/\n/g,'<br>');
+    // Also show in insights
+    const weekly=$('ai-weekly-insight');
+    if(weekly){weekly.innerHTML=`<div class="insight-coach"><strong>🤖 AI Coach:</strong> ${text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,' ').substring(0,200)}…</div>`}
+  }catch(e){$('coach-output').textContent='Error: '+e.message}
+  btn.disabled=false;btn.innerHTML='🤖 Get Personalized Advice';
+}
+
+// ════════════════════════════════════════════════════════════════
+// MORNING BRIEFING
+// ════════════════════════════════════════════════════════════════
+function renderMorning(){
+  const sec=$('morning-section');if(!sec)return;
+  const n=now();const hour=n.getHours();
+  const actualGreet=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+  const today=todayKey();const todayLog=S.habitLogs[today]||{};
+  const habDone=S.habits.filter(h=>todayLog[h.id]).length;
+  const overdue=S.tasks.filter(t=>!t.done&&t.due&&new Date(t.due)<n).length;
+  const todayTasks=S.tasks.filter(t=>{if(t.done||!t.due)return false;const d=new Date(t.due);return d.toDateString()===n.toDateString()});
+  const replyPend=S.messages.filter(m=>m.needsReply&&!m.replied).length;
+  let lines=[];
+  if(overdue>0)lines.push(`⚠ <strong style="color:var(--coral)">${overdue} overdue task${overdue>1?'s':''}</strong> need attention first.`);
+  if(todayTasks.length)lines.push(`📅 <strong>${todayTasks.length} task${todayTasks.length>1?'s':''}</strong> due today: ${todayTasks.slice(0,2).map(t=>`<em>${esc(t.title)}</em>`).join(', ')}${todayTasks.length>2?'…':''}.`);
+  if(replyPend)lines.push(`💬 <strong>${replyPend} message${replyPend>1?'s':''}</strong> waiting for your reply.`);
+  if(S.habits.length)lines.push(`🌱 <strong>${habDone}/${S.habits.length} habits</strong> done today.`);
+  if(!lines.length)lines.push('✨ Nothing urgent. Great time for deep research work.');
+  sec.innerHTML=`<div class="morning-card"><div class="morning-greeting">${actualGreet}${S.settings.name?', '+S.settings.name:''}. ☀️</div><div class="morning-brief">${lines.join(' ')}</div></div>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// SETTINGS
+// ════════════════════════════════════════════════════════════════
+function loadSettings(){
+  const k=$('api-key-input');if(k&&S.settings.apiKey)k.value=S.settings.apiKey;
+  const n=$('s-name');if(n&&S.settings.name)n.value=S.settings.name;
+  const r=$('s-roles');if(r&&S.settings.roles)r.value=S.settings.roles;
+  const bt=$('s-brief-time');if(bt&&S.settings.briefTime)bt.value=S.settings.briefTime;
+  const gc=$('gmail-client-id');if(gc&&S.settings.gmailClientId)gc.value=S.settings.gmailClientId;
+  const mu=$('msg-username');if(mu&&S.settings.name)mu.value=S.settings.name;
+  const toggle=$('notif-toggle');if(toggle)toggle.classList.toggle('on',S.settings.notif);
+  updateAiDots();
+  if(S.settings.gmailToken){const gs=$('gmail-status');if(gs)gs.style.display='block'}
+}
+
+function saveApiKey(){S.settings.apiKey=$('api-key-input').value.trim();save();updateAiDots();toast('✓ API key saved')}
+function saveSettings(){
+  S.settings.name=$('s-name').value.trim();
+  S.settings.roles=$('s-roles').value.trim();
+  S.settings.briefTime=$('s-brief-time').value;
+  save();toast('✓ Settings saved');
+}
+
+function updateAiDots(){
+  const on=!!S.settings.apiKey;
+  [$('ai-dot'),$('ai-dot2')].forEach(d=>{if(d)d.classList.toggle('on',on)});
+}
+
+async function toggleNotif(){
+  if(!('Notification' in window)){toast('Not supported');return}
+  if(Notification.permission!=='granted'){const p=await Notification.requestPermission();if(p!=='granted'){toast('Notifications blocked');return}}
+  S.settings.notif=!S.settings.notif;save();
+  const t=$('notif-toggle');if(t)t.classList.toggle('on',S.settings.notif);
+  toast(S.settings.notif?'🔔 Reminders on':'Reminders off');
+}
+
+function exportData(){
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`taskflow-${todayKey()}.json`;a.click();
+}
+
+function clearAll(){if(!confirm('Delete ALL data? Cannot be undone.'))return;localStorage.removeItem('tf_v3');location.reload()}
+
+// ════════════════════════════════════════════════════════════════
+// REMINDERS
+// ════════════════════════════════════════════════════════════════
+const scheduled=new Set();
+function scheduleReminder(task){
+  if(!task.due||task.done||!task.remind||scheduled.has(task.id))return;
+  const fire=new Date(task.due).getTime()-task.remind*60000;
+  const delay=fire-Date.now();if(delay<0)return;
+  scheduled.add(task.id);
+  setTimeout(()=>{
+    if(!S.settings.notif||Notification.permission!=='granted')return;
+    const t=S.tasks.find(t=>t.id===task.id);if(!t||t.done)return;
+    new Notification('TaskFlow',{body:`⏰ ${t.title} — due in ${t.remind} min`});
+  },delay);
+}
+
+// ════════════════════════════════════════════════════════════════
+// PWA INSTALL
+// ════════════════════════════════════════════════════════════════
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  const btn=$('install-btn');if(btn)btn.style.display='';
+});
+
+function installPWA(){
+  if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>deferredPrompt=null)}
+}
+
+// ════════════════════════════════════════════════════════════════
+// MODAL
+// ════════════════════════════════════════════════════════════════
+function closeModal(id){$(id).classList.remove('open')}
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  load();
+  handleGmailCallback();
+  updatePomoDisplay();
+  populateGoalSelects();
+  renderTasks();
+  renderHabits();
+  renderMorning();
+  updateReplyBadge();
+  updateAiDots();
+  loadSettings();
+  renderScienceTip();
+  // Tab from URL
+  const urlTab=new URLSearchParams(location.search).get('tab');
+  if(urlTab)go(urlTab);
+  // Schedule all reminders
+  S.tasks.forEach(scheduleReminder);
+  // Reply check every 30min
+  setInterval(()=>{checkReplies();updateReplyBadge()},30*60000);
+  // Service worker
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+});
+</script>
+</body>
+</html>
