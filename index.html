@@ -1031,7 +1031,7 @@ async function ai(system,user){
   const r=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1200,system,messages:[{role:'user',content:user}]})
+    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:3000,system,messages:[{role:'user',content:user}]})
   });
   if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API error')}
   return(await r.json()).content[0].text;
@@ -1041,7 +1041,25 @@ const goalsCtx=()=>S.goals.map(g=>`ID:${g.id} "${g.title}" (${g.cat}) deadline:$
 const userCtx=()=>`Name:${S.settings.name||'user'}, Roles:${S.settings.roles||'researcher'}`;
 const todayDateStr=()=>now().toISOString();
 
-function parseJSON(raw){return JSON.parse(raw.replace(/```json|```/g,'').trim())}
+function parseJSON(raw){
+  // strip markdown fences
+  let s=raw.replace(/```json|```/g,'').trim();
+  // find the outermost JSON object or array
+  const start=s.search(/[\[{]/);
+  if(start>0)s=s.slice(start);
+  // if response was truncated, try to close open structures
+  try{return JSON.parse(s)}catch(e){
+    // attempt to salvage truncated JSON by closing open brackets
+    let fixed=s;
+    const opens=(fixed.match(/\[/g)||[]).length-(fixed.match(/\]/g)||[]).length;
+    const openBraces=(fixed.match(/\{/g)||[]).length-(fixed.match(/\}/g)||[]).length;
+    // remove trailing incomplete item (ends mid-string or mid-key)
+    fixed=fixed.replace(/,\s*\{[^}]*$/,'').replace(/,\s*"[^"]*$/,'');
+    for(let i=0;i<openBraces;i++)fixed+='}';
+    for(let i=0;i<opens;i++)fixed+=']';
+    try{return JSON.parse(fixed)}catch(e2){throw new Error('Could not parse AI response — try again')}
+  }
+}
 
 // ════════════════════════════════════════════════════════════════
 // TASKS
