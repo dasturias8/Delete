@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<meta name="theme-color" content="#E8A528"/>
+<meta name="theme-color" content="#F7F5F0"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <link rel="manifest" href="manifest.json"/>
@@ -14,14 +14,49 @@
 /* ── RESET & ROOT ─────────────────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:#111008; --s1:#1a1813; --s2:#242118; --s3:#2e2b22; --border:#3a3628;
-  --amber:#E8A528; --amber-dim:rgba(232,165,40,.13); --amber-glow:rgba(232,165,40,.06);
-  --teal:#2DD4BF; --teal-dim:rgba(45,212,191,.13);
-  --coral:#F87171; --coral-dim:rgba(248,113,113,.13);
-  --sage:#86EFAC; --sage-dim:rgba(134,239,172,.13);
-  --violet:#C084FC; --violet-dim:rgba(192,132,252,.13);
-  --blue:#60A5FA; --blue-dim:rgba(96,165,250,.13);
-  --text:#F0EBE0; --text2:#A09880; --text3:#6B6454;
+  /* ── Calm focus palette (research-backed) ────────────────────────────
+     • Warm off-white bg (#F7F5F0) reduces eye strain vs pure white
+     • Muted sage green primary — nature exposure improves focus (Kaplan 1995)
+     • Soft clay accent — warm neutrals lower cortisol (Elliot 2007)
+     • Low-saturation blues for AI/actions — blue light attentiveness effect
+     • High contrast text on light = faster reading (Legge & Bigelow 2011)
+  ─────────────────────────────────────────────────────────────────── */
+  --bg:#F7F5F0;
+  --s1:#FFFFFF;
+  --s2:#F0EDE6;
+  --s3:#E8E4DB;
+  --border:#DDD9D0;
+
+  /* Primary: sage green — calm focus, nature-associated */
+  --amber:#4A7C59;
+  --amber-dim:rgba(74,124,89,.10);
+  --amber-glow:rgba(74,124,89,.05);
+
+  /* Action: muted clay/terracotta */
+  --teal:#6B8F71;
+  --teal-dim:rgba(107,143,113,.12);
+
+  /* Alert: soft warm red (not harsh) */
+  --coral:#C0574A;
+  --coral-dim:rgba(192,87,74,.10);
+
+  /* Success: deeper sage */
+  --sage:#4A7C59;
+  --sage-dim:rgba(74,124,89,.10);
+
+  /* Secondary accent: muted slate blue */
+  --violet:#5B7FA6;
+  --violet-dim:rgba(91,127,166,.10);
+
+  /* Info blue */
+  --blue:#5B7FA6;
+  --blue-dim:rgba(91,127,166,.10);
+
+  /* Typography: warm dark brown not harsh black */
+  --text:#2C2825;
+  --text2:#6B6154;
+  --text3:#9B9186;
+
   --r:14px; --r-sm:9px;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
@@ -43,6 +78,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   max-width:1400px;
   margin:0 auto;
   position:relative;
+  /* NO padding-top here — handled per-element below */
 }
 /* topbar hidden — sidebar replaces it on all breakpoints */
 #topbar{display:none!important}
@@ -56,32 +92,33 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   flex-shrink:0;
   border-right:1px solid var(--border);border-top:none;
   /* safe areas for notch/home bar */
-  padding:calc(var(--safe-top) + 4px) 4px calc(var(--safe-bottom) + 4px);
+  padding:env(safe-area-inset-top,0px) 4px calc(var(--safe-bottom) + 8px);
   gap:2px;
   overflow-y:auto;overflow-x:hidden;
-  background:rgba(17,16,8,.97);
+  background:rgba(247,245,240,.97);
   backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-right:1px solid var(--border);
   z-index:50;
 }
 /* logo: icon-only on mobile */
 .logo-desktop{
   display:flex;flex-direction:column;align-items:center;
-  padding:6px 0 14px;border-bottom:1px solid var(--border);
-  margin-bottom:8px;width:100%;text-align:center;
+  padding:4px 0 6px;border-bottom:1px solid var(--border);
+  margin-bottom:4px;width:100%;text-align:center;
   font-family:'Fraunces',serif;font-weight:700;color:var(--amber);
   font-size:1.25rem;line-height:1;
 }
 .logo-desktop .logo-wordmark{display:none} /* hidden on mobile */
-.logo-desktop .logo-icon{display:block;font-size:1.4rem}
+.logo-desktop .logo-icon{display:block;font-size:1rem}
 
 /* nav buttons: icon only on mobile */
 .nav-btn{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-  padding:10px 4px;border-radius:10px;cursor:pointer;
+  padding:7px 4px;border-radius:10px;cursor:pointer;
   color:var(--text3);border:none;background:none;
   transition:color .18s,background .18s;
   position:relative;min-width:0;width:100%;
-  min-height:48px;
+  min-height:42px;
 }
 .nav-btn .nav-icon{font-size:1.35rem;line-height:1;display:block;transition:transform .2s}
 .nav-btn .nav-lbl{display:none} /* labels hidden on mobile */
@@ -497,6 +534,7 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
           </select>
         </div>
         <div class="fg"><label>Goal</label><select id="t-goal"><option value="">— None —</option></select></div>
+        <div class="fg"><label>Project tag</label><input id="t-project" placeholder="e.g. Nitrogen Cycling Paper"/></div>
         <div class="fg"><label>Due date &amp; time</label><input type="datetime-local" id="t-due"/></div>
         <div class="fg"><label>Priority</label>
           <div class="pri-row">
@@ -867,17 +905,25 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <button class="btn btn-primary" onclick="syncCreate()" id="sync-create-btn">☁️ Create Cloud Profile</button>
+        <div id="sync-setup" style="display:flex;flex-direction:column;gap:10px">
+          <div style="background:var(--s2);border-radius:var(--r-sm);padding:12px;border:1px solid var(--border)">
+            <div style="font-weight:600;font-size:.85rem;margin-bottom:6px">📱 First device — create a profile</div>
+            <div style="font-size:.78rem;color:var(--text2);margin-bottom:8px">Creates a cloud profile and gives you a sync code to paste on your other device.</div>
+            <button class="btn btn-primary btn-full" onclick="syncCreate()" id="sync-create-btn">☁️ Create Cloud Profile</button>
+          </div>
+          <div style="background:var(--s2);border-radius:var(--r-sm);padding:12px;border:1px solid var(--border)">
+            <div style="font-weight:600;font-size:.85rem;margin-bottom:6px">💻 Second device — enter existing code</div>
+            <div style="font-size:.78rem;color:var(--text2);margin-bottom:8px">Already have a sync code from another device? Enter it here to link this device.</div>
+            <div style="display:flex;gap:6px">
+              <input id="sync-import-input" placeholder="Paste sync code here…" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:.75rem"/>
+              <button class="btn btn-primary" onclick="syncImport()">Link</button>
+            </div>
+          </div>
+        </div>
         <button class="btn btn-teal btn-sm" onclick="syncPush()" id="sync-push-btn" style="display:none">⬆️ Push</button>
         <button class="btn btn-ghost btn-sm" onclick="syncPull()" id="sync-pull-btn" style="display:none">⬇️ Pull Latest</button>
       </div>
-      <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
-        <div style="font-size:.74rem;color:var(--text3);margin-bottom:8px">Already have a sync code from another device?</div>
-        <div style="display:flex;gap:8px">
-          <input id="sync-import-input" placeholder="Paste your sync code here" style="font-family:'JetBrains Mono',monospace;font-size:.75rem;flex:1"/>
-          <button class="btn btn-ghost btn-sm" onclick="syncImport()">Import</button>
-        </div>
-      </div>
+
     </div>
     <div class="card">
       <div class="section-label">🔔 Notifications</div>
@@ -994,7 +1040,7 @@ const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 const cE=(tag,cls='')=>{const el=document.createElement(tag);if(cls)el.className=cls;return el};
 const $=id=>document.getElementById(id);
 const now=()=>new Date();
-const todayKey=()=>now().toISOString().slice(0,10);
+const todayKey=()=>{const n=now();const y=n.getFullYear(),m=String(n.getMonth()+1).padStart(2,'0'),d=String(n.getDate()).padStart(2,'0');return`${y}-${m}-${d}`};
 const fmtDue=due=>{if(!due)return'';const d=new Date(due),n=now(),t=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});const date=d.toLocaleDateString([],{month:'short',day:'numeric'});if(d.toDateString()===n.toDateString())return`Today ${t}`;const tm=new Date(n);tm.setDate(n.getDate()+1);if(d.toDateString()===tm.toDateString())return`Tomorrow ${t}`;return`${date} ${t}`};
 const catEmoji=c=>{const cat=getCategories().find(x=>x.id===c);return cat?cat.emoji:'📌'};
 const catName=c=>{const cat=getCategories().find(x=>x.id===c);return cat?cat.name:c};
@@ -1013,7 +1059,7 @@ function go(tab){
   $('page-'+tab).classList.add('active');
   $('nb-'+tab).classList.add('active');
   S.ui.currentTab=tab;
-  if(tab==='tasks'){renderTasks();renderMorning()}
+  if(tab==='tasks'){renderCatFilters();populateGoalSelects();renderTasks();renderMorning()}
   if(tab==='habits'){renderHabits()}
   if(tab==='goals'){renderGoals()}
   if(tab==='messages'){renderMessages()}
@@ -1039,7 +1085,15 @@ async function ai(system,user){
 
 const goalsCtx=()=>S.goals.map(g=>`ID:${g.id} "${g.title}" (${g.cat}) deadline:${g.deadline||'none'} desc:"${g.desc||''}"`).join('\n')||'No goals set.';
 const userCtx=()=>`Name:${S.settings.name||'user'}, Roles:${S.settings.roles||'researcher'}`;
-const todayDateStr=()=>now().toISOString();
+const todayDateStr=()=>{
+  const n=now();
+  const off=-n.getTimezoneOffset();
+  const h=Math.floor(Math.abs(off)/60).toString().padStart(2,'0');
+  const m=(Math.abs(off)%60).toString().padStart(2,'0');
+  const tz=(off>=0?'+':'-')+h+':'+m;
+  const locale=n.toLocaleString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:true,timeZoneName:'short'});
+  return locale+' | ISO: '+n.toISOString()+' | TZ offset: '+tz;
+};
 
 function parseJSON(raw){
   // strip markdown fences
@@ -1070,12 +1124,33 @@ function setPri(p){
 }
 
 function addTask(){
-  const title=$('t-title').value.trim();
-  if(!title){toast('Enter a task title');return}
-  const task={id:Date.now()+Math.random(),title,cat:$('t-cat').value,goalId:$('t-goal').value||null,project:$('t-project').value.trim(),due:$('t-due').value,priority:S.ui.priority,note:$('t-note').value.trim(),remind:parseInt($('t-remind').value),done:false,source:'manual',created:Date.now(),implIntention:''};
-  S.tasks.push(task);save();scheduleReminder(task);renderTasks();
-  $('t-title').value='';$('t-note').value='';$('t-project').value='';$('t-due').value='';$('t-goal').value='';
-  setPri('med');toast('✓ Task added');
+  try{
+    const title=$('t-title').value.trim();
+    if(!title){toast('Enter a task title');return}
+    const catEl=$('t-cat');const goalEl=$('t-goal');const projEl=$('t-project');
+    const dueEl=$('t-due');const noteEl=$('t-note');const remEl=$('t-remind');
+    const task={
+      id:Date.now()+Math.random(),
+      title,
+      cat:catEl?catEl.value:'personal',
+      goalId:goalEl?goalEl.value||null:null,
+      project:projEl?projEl.value.trim():'',
+      due:dueEl?dueEl.value:'',
+      priority:S.ui.priority||'med',
+      note:noteEl?noteEl.value.trim():'',
+      remind:remEl?parseInt(remEl.value)||0:0,
+      done:false,source:'manual',created:Date.now(),implIntention:''
+    };
+    S.tasks.push(task);save();
+    try{scheduleReminder(task)}catch(e){}
+    renderTasks();
+    $('t-title').value='';
+    if(noteEl)noteEl.value='';
+    if(projEl)projEl.value='';
+    if(dueEl)dueEl.value='';
+    if(goalEl)goalEl.value='';
+    setPri('med');toast('✓ Task added');
+  }catch(e){toast('Error adding task: '+e.message);console.error('addTask error:',e)}
 }
 
 async function aiSmartTask(){
@@ -1093,7 +1168,13 @@ User: ${userCtx()}\nGoals:\n${goalsCtx()}`;
     if(j.goalId)$('t-goal').value=j.goalId;
     if(j.project)$('t-project').value=j.project;
     if(j.priority)setPri(j.priority);
-    if(j.dueISO){const d=new Date(j.dueISO);$('t-due').value=d.toISOString().slice(0,16)}
+    if(j.dueISO){
+      const d=new Date(j.dueISO);
+      // Must use LOCAL time for datetime-local input (not UTC via toISOString)
+      const pad=n=>String(n).padStart(2,'0');
+      const localISO=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      $('t-due').value=localISO;
+    }
     if(j.note)$('t-note').value=j.note;
     if(j.implIntention){const n=document.createElement('div');n.className='impl-tag';n.textContent='💡 '+j.implIntention;const f=$('t-title').parentNode.parentNode;f.appendChild(n);setTimeout(()=>n.remove(),8000)}
     toast('✨ AI filled task details');
@@ -1115,7 +1196,10 @@ function openEditTask(id){
   const gSel=$('edit-goal');if(gSel){gSel.innerHTML='<option value="">— None —</option>';S.goals.forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.title;gSel.appendChild(o)});gSel.value=t.goalId||''}
   $('edit-title').value=t.title||'';
   $('edit-project').value=t.project||'';
-  if(t.due){$('edit-due').value=new Date(t.due).toISOString().slice(0,16)} else{$('edit-due').value=''}
+  if(t.due){
+    const ed=new Date(t.due);const pad=n=>String(n).padStart(2,'0');
+    $('edit-due').value=`${ed.getFullYear()}-${pad(ed.getMonth()+1)}-${pad(ed.getDate())}T${pad(ed.getHours())}:${pad(ed.getMinutes())}`;
+  } else{$('edit-due').value=''}
   $('edit-note').value=t.note||'';
   $('edit-impl').value=t.implIntention||'';
   // set priority
@@ -1199,21 +1283,67 @@ function renderCatFilters(){
 async function parseMeeting(){
   const text=$('meeting-transcript').value.trim();if(!text){toast('Paste a transcript first');return}
   const title=$('meeting-title').value.trim();
-  const btn=$('meeting-btn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Extracting…';
+  const btn=$('meeting-btn');btn.disabled=true;
+  const key=S.settings.apiKey;
+  if(!key){toast('⚠ Add API key in Settings');btn.disabled=false;return}
+
+  // For very long transcripts, chunk into pieces and merge results
+  const CHUNK=4500; // safe chars per chunk for fast processing
+  const chunks=[];
+  if(text.length>CHUNK){
+    // split on sentence/line boundaries
+    let remaining=text;
+    while(remaining.length>0){
+      let end=Math.min(CHUNK,remaining.length);
+      if(end<remaining.length){
+        // try to break at a newline or period
+        const breakAt=remaining.lastIndexOf('\n',end)||remaining.lastIndexOf('. ',end);
+        if(breakAt>CHUNK*0.6)end=breakAt+1;
+      }
+      chunks.push(remaining.slice(0,end));
+      remaining=remaining.slice(end);
+    }
+  } else {
+    chunks.push(text);
+  }
+
+  const allTasks=[];
+  const allHabits=[];
   try{
-    const sys=`You are extracting action items from a meeting transcript. Return ONLY JSON: {"tasks":[...],"habits":[]}
-tasks: Every action item, to-do, follow-up, and decision with owners. Use "title" that includes WHO if mentioned.
-Format: {"title":"[Owner:] action","cat":"research|startup|personal|admin","goalId":"id or null","project":"${title||'Meeting'}","priority":"low|med|high","dueISO":"ISO or null — if 'by Friday' etc set relative to today","note":"context from meeting or null","implIntention":"When [situation], I will [action]"}
-habits: only if recurring commitment mentioned ("we'll do standups every Monday", "I'll review metrics weekly")
-Be comprehensive — extract EVERY commitment made.
+    for(let ci=0;ci<chunks.length;ci++){
+      btn.innerHTML=`<span class="spin"></span> Part ${ci+1}/${chunks.length}…`;
+      const sys=`Extract action items from this meeting transcript segment. Return ONLY JSON: {"tasks":[...],"habits":[]}
+tasks: Every to-do, action item, follow-up. Keep titles concise and specific.
+Format each: {"title":"action item","cat":"research|startup|personal|admin","goalId":null,"project":"${title||'Meeting'}","priority":"low|med|high","dueISO":null,"note":"brief context","implIntention":""}
+habits: only recurring commitments ("every Monday", "daily", "weekly")
 User: ${userCtx()}\nGoals:\n${goalsCtx()}`;
-    const raw=await ai(sys,`Meeting${title?' — '+title:''}:\n${text}\nToday: ${todayDateStr()}`);
-    const parsed=parseJSON(raw);
-    S.ui.capturedTasks=Array.isArray(parsed)?parsed:(parsed.tasks||[]);
-    S.ui.capturedHabits=Array.isArray(parsed)?[]:(parsed.habits||[]);
+      const mr=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:2000,system:sys,
+          messages:[{role:'user',content:`Meeting segment ${ci+1}/${chunks.length}${title?' — '+title:''}:\n${chunks[ci]}\nToday: ${todayDateStr()}`}]})
+      });
+      if(!mr.ok){const e=await mr.json();throw new Error(e.error?.message||'API error')}
+      const raw=(await mr.json()).content[0].text;
+      const parsed=parseJSON(raw);
+      const tasks=Array.isArray(parsed)?parsed:(parsed.tasks||[]);
+      const habits=Array.isArray(parsed)?[]:(parsed.habits||[]);
+      allTasks.push(...tasks);
+      allHabits.push(...habits);
+    }
+
+    // deduplicate tasks with very similar titles
+    const seen=new Set();
+    const deduped=allTasks.filter(t=>{
+      const key=t.title.toLowerCase().replace(/\s+/g,' ').slice(0,40);
+      if(seen.has(key))return false;seen.add(key);return true;
+    });
+
+    S.ui.capturedTasks=deduped;
+    S.ui.capturedHabits=allHabits;
     showCaptureResults();
     $('meeting-transcript').value='';$('meeting-title').value='';
-    toast(`✓ Extracted ${S.ui.capturedTasks.length} action items`);
+    toast(`✓ Extracted ${deduped.length} action items${chunks.length>1?' (from '+chunks.length+' sections)':''}`);
   }catch(e){toast('AI: '+e.message)}
   btn.disabled=false;btn.innerHTML='🤖 Extract To-Dos';
 }
@@ -1243,9 +1373,16 @@ setInterval(checkTaskNotifications,60000);
 
 
 function setF(type,val,el){
-  if(type==='cat'){S.ui.filterCat=val;document.querySelectorAll('#cat-filters .chip').forEach(c=>c.classList.remove('active'))}
-  else{S.ui.filterGoal=val;document.querySelectorAll('#goal-filter-chips .chip').forEach(c=>c.classList.remove('active'))}
-  el.classList.add('active');renderTasks();
+  if(type==='cat'){
+    S.ui.filterCat=val;
+    document.querySelectorAll('#cat-filters .chip').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+  } else {
+    S.ui.filterGoal=val;
+    document.querySelectorAll('#goal-filter-chips .chip').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+  }
+  renderTasks();
 }
 
 function setSort(s,el){S.ui.sortMode=s;document.querySelectorAll('#sort-chips .chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTasks()}
@@ -1511,6 +1648,8 @@ function getHabitStreak(habitId){
 
 function renderHabits(){
   const today=todayKey();
+  // Prune future-dated habit log keys (caused by old UTC-based todayKey bug)
+  Object.keys(S.habitLogs).forEach(k=>{if(k>today){delete S.habitLogs[k]}});
   const log=S.habitLogs[today]||{};
   const done=S.habits.filter(h=>log[h.id]).length;
   const total=S.habits.length;
@@ -1593,14 +1732,29 @@ function completePomo(){
     S.focusSessions.push({date:todayDateStr(),mode:S.ui.pomoMode,dur:S.ui.pomoTotal,task:$('pomo-task-sel').value||'',completed:true});
     save();
   }
+  // ── Full UI reset so next session starts clean ──
   $('pomo-btn').textContent='▶ Start';
   S.ui.pomoSecs=S.ui.pomoTotal;
+  S.ui.affectPicked='';
+  // Clear affect check-in
+  document.querySelectorAll('.affect-btn').forEach(b=>b.classList.remove('picked'));
+  const reframe=$('affect-reframe');if(reframe){reframe.style.display='none';reframe.textContent=''}
+  // Re-show affect section (required for next work session start)
+  const affSec=$('affect-section');
+  if(affSec){affSec.style.display=(S.ui.pomoMode==='work'||S.ui.pomoMode==='deep')?'block':'none'}
+  // Disable start button until affect is re-picked
+  const startBtn=$('start-focus-btn');if(startBtn)startBtn.disabled=true;
+  // Clear distraction input (keep logged distractions — user may want to review)
+  const di=$('distraction-input');if(di)di.value='';
+  // Reset task selector to blank
+  const taskSel=$('pomo-task-sel');if(taskSel)taskSel.value='';
+  // Update counters
   $('pomo-count').textContent=S.ui.pomoCount;
   $('pomo-total').textContent=S.ui.pomoDayTotal;
   updatePomoDisplay();
-  if(S.settings.notif&&Notification.permission==='granted')new Notification('TaskFlow',{body:S.ui.pomoMode==='work'?`✓ Pomodoro done! Time for a break 🎉`:'Break over — ready to focus? 💪'});
-  toast(S.ui.pomoMode==='work'?'🎉 Session complete! Take a break.':'Break over. Back to work!');
-  S.ui.affectPicked='';
+  if(S.settings.notif&&Notification.permission==='granted')
+    new Notification('TaskFlow',{body:S.ui.pomoMode==='work'?'✓ Pomodoro done! Time for a break 🎉':'Break over — ready to focus? 💪'});
+  toast(S.ui.pomoMode==='work'?'🎉 Session complete! How do you feel going into the break?':'Break over. Pick your focus state to start.');
   renderFocusStats();
 }
 
@@ -2178,7 +2332,9 @@ async function refreshAllMessages(){
 // ════════════════════════════════════════════════════════════════
 // CROSS-DEVICE SYNC (jsonblob.com — free, no signup)
 // ════════════════════════════════════════════════════════════════
-const BLOB_API='https://jsonblob.com/api/jsonBlob';
+const BLOB_API='https://api.jsonbin.io/v3/b';
+// Helper: generate a unique 24-char sync code locally
+function genSyncId(){return Array.from({length:24},()=>'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random()*36)]).join('')}
 
 function setSyncStatus(msg,color){
   const el=$('sync-status-text');if(el){el.textContent=msg;el.style.color=color||'var(--text3)'}
@@ -2194,21 +2350,24 @@ async function syncCreate(){
   const btn=$('sync-create-btn');if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span> Creating…'}
   setSyncStatus('Creating cloud profile…','var(--amber)');
   try{
+    // JSONBin.io: POST creates a bin, returns {metadata:{id:"..."}}
     const r=await fetch(BLOB_API,{
       method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      headers:{'Content-Type':'application/json','X-Bin-Private':'false','X-Bin-Name':'taskflow-'+Date.now()},
       body:JSON.stringify(getSyncPayload())
     });
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    const loc=r.headers.get('Location')||r.url;
-    const id=loc.split('/').pop();
+    const rtext=await r.text();
+    let rdata;try{rdata=JSON.parse(rtext)}catch(e){throw new Error('Server error: '+rtext.slice(0,80))}
+    if(!r.ok)throw new Error(rdata.message||'HTTP '+r.status);
+    const id=rdata?.metadata?.id;
+    if(!id)throw new Error('No bin ID in response — JSONBin may be down, try again');
     S.settings.syncId=id;save();
     const inp=$('sync-code-input');if(inp)inp.value=id;
-    if(btn){btn.style.display='none'}
+    const setup=$('sync-setup');if(setup)setup.style.display='none';
     const pp=$('sync-push-btn');if(pp)pp.style.display='';
     const pl=$('sync-pull-btn');if(pl)pl.style.display='';
-    setSyncStatus('✓ Cloud profile created! Copy your sync code and paste it on other devices.','var(--sage)');
-    toast('✓ Sync profile created');
+    setSyncStatus('✅ Profile created! Your sync code: '+id+' — copy it and paste on your other device under "Second device".','var(--sage)');
+    toast('✓ Sync profile created — copy your code!');
   }catch(e){setSyncStatus('Failed: '+e.message,'var(--coral)');toast('Sync error: '+e.message)}
   if(btn){btn.disabled=false;btn.innerHTML='☁️ Create Cloud Profile'}
 }
@@ -2220,7 +2379,7 @@ async function syncPush(){
   try{
     const r=await fetch(`${BLOB_API}/${S.settings.syncId}`,{
       method:'PUT',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify(getSyncPayload())
     });
     if(!r.ok)throw new Error('HTTP '+r.status);
@@ -2236,10 +2395,12 @@ async function syncPull(){
   setSyncStatus('Pulling latest…','var(--amber)');
   try{
     const r=await fetch(`${BLOB_API}/${S.settings.syncId}`,{
-      headers:{'Accept':'application/json'}
+      headers:{'X-Bin-Meta':'false'}
     });
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    const data=await r.json();
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'HTTP '+r.status+' — check your sync code')}
+    const resp=await r.json();
+    // JSONBin wraps in {record:{...}} unless X-Bin-Meta:false, then returns data directly
+    const data=resp.record||resp;
     // merge — cloud wins for content, keep local settings/tokens
     if(data.tasks)S.tasks=data.tasks;
     if(data.goals)S.goals=data.goals;
