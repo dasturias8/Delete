@@ -2,14 +2,147 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="theme-color" content="#F7F5F0"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
 <title>TaskFlow AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<!-- Firebase v10 -->
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import{getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import{getFirestore,doc,setDoc,getDoc,onSnapshot}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// ── Firebase config (Daniella's project — replace with your own from Firebase console) ──
+const firebaseConfig={
+  apiKey:"AIzaSyA2DMBTaohXEcYfs7duim2itNu10Z23z_8",
+  authDomain:"taskai-2fa96.firebaseapp.com",
+  projectId:"taskai-2fa96",
+  storageBucket:"taskai-2fa96.firebasestorage.app",
+  messagingSenderId:"928064365560",
+  appId:"1:928064365560:web:b8e06bb5dbf763b40aac0d"
+};
+
+const fbApp=initializeApp(firebaseConfig);
+const auth=getAuth(fbApp);
+const db=getFirestore(fbApp);
+const provider=new GoogleAuthProvider();
+
+let _unsubscribeSnapshot=null;
+
+// ── Expose to global scope for onclick handlers ──
+window.fbSignIn=async function(){
+  try{
+    await signInWithPopup(auth,provider);
+  }catch(e){
+    if(e.code!=='auth/popup-closed-by-user')toast('Sign-in error: '+e.message);
+  }
+};
+
+window.fbSignOut=async function(){
+  if(!confirm('Sign out? Your data stays saved in the cloud.'))return;
+  if(_unsubscribeSnapshot){_unsubscribeSnapshot();_unsubscribeSnapshot=null;}
+  await signOut(auth);
+  updateAuthUI(null);
+  toast('Signed out');
+};
+
+window.fbSaveNow=async function(){
+  const user=auth.currentUser;
+  if(!user)return;
+  try{
+    const payload={tasks:S.tasks,goals:S.goals,habits:S.habits,habitLogs:S.habitLogs,
+      categories:S.categories,distractions:S.distractions,
+      settings:{name:S.settings.name,roles:S.settings.roles,briefTime:S.settings.briefTime},
+      updatedAt:Date.now()};
+    await setDoc(doc(db,'users',user.uid),payload);
+  }catch(e){console.warn('Cloud save failed:',e.message);}
+};
+
+async function loadFromCloud(uid){
+  try{
+    const snap=await getDoc(doc(db,'users',uid));
+    if(snap.exists()){
+      const d=snap.data();
+      if(d.tasks)S.tasks=d.tasks;
+      if(d.goals)S.goals=d.goals;
+      if(d.habits)S.habits=d.habits;
+      if(d.habitLogs)S.habitLogs=d.habitLogs;
+      if(d.categories)S.categories=d.categories;
+      if(d.distractions)S.distractions=d.distractions;
+      if(d.settings){S.settings.name=d.settings.name||S.settings.name;S.settings.roles=d.settings.roles||S.settings.roles;S.settings.briefTime=d.settings.briefTime||S.settings.briefTime;}
+      save(); // mirror to localStorage as backup
+      renderTasks();renderHabits();renderGoals();renderMorning();renderCatFilters();populateGoalSelects();loadSettings();
+      toast('✓ Data loaded from your account');
+    }
+  }catch(e){console.warn('Cloud load failed:',e.message);}
+}
+
+function updateAuthUI(user){
+  const signedOut=$('auth-signed-out');
+  const signedIn=$('auth-signed-in');
+  const avatar=$('auth-avatar');
+  const nameEl=$('auth-display-name');
+  const emailEl=$('auth-display-email');
+  if(!signedOut||!signedIn)return;
+  if(user){
+    signedOut.style.display='none';
+    signedIn.style.display='block';
+    if(avatar)avatar.src=user.photoURL||'';
+    if(nameEl)nameEl.textContent=user.displayName||'';
+    if(emailEl)emailEl.textContent=user.email||'';
+  }else{
+    signedOut.style.display='block';
+    signedIn.style.display='none';
+  }
+}
+
+// Patch save() to also push to cloud (debounced)
+let _cloudSaveTimer=null;
+const _origSave=window._origSave||(()=>{});
+function patchedSave(){
+  try{localStorage.setItem('tf_v3',JSON.stringify(S))}catch(e){}
+  if(auth.currentUser){
+    clearTimeout(_cloudSaveTimer);
+    _cloudSaveTimer=setTimeout(()=>window.fbSaveNow(),1500);
+  }
+}
+
+// Wait for app to be ready, then patch save
+window.addEventListener('DOMContentLoaded',()=>{
+  setTimeout(()=>{
+    // Override the save function defined in main script
+    window.save=patchedSave;
+  },100);
+});
+
+onAuthStateChanged(auth,async(user)=>{
+  updateAuthUI(user);
+  if(user){
+    await loadFromCloud(user.uid);
+    // Real-time listener for changes from other devices
+    if(_unsubscribeSnapshot)_unsubscribeSnapshot();
+    _unsubscribeSnapshot=onSnapshot(doc(db,'users',user.uid),(snap)=>{
+      if(!snap.exists())return;
+      const d=snap.data();
+      // Only apply if remote is newer
+      if(d.updatedAt&&d.updatedAt>((S._lastRemoteUpdate)||0)){
+        S._lastRemoteUpdate=d.updatedAt;
+        if(d.tasks)S.tasks=d.tasks;
+        if(d.goals)S.goals=d.goals;
+        if(d.habits)S.habits=d.habits;
+        if(d.habitLogs)S.habitLogs=d.habitLogs;
+        if(d.categories)S.categories=d.categories;
+        save();
+        renderTasks();renderHabits();renderGoals();renderMorning();
+      }
+    });
+  }
+});
+</script>
 <style>
 /* ── RESET & ROOT ─────────────────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -92,7 +225,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   flex-shrink:0;
   border-right:1px solid var(--border);border-top:none;
   /* safe areas for notch/home bar */
-  padding:env(safe-area-inset-top,0px) 4px calc(var(--safe-bottom) + 8px);
+  padding:8px 4px 8px;
   gap:2px;
   overflow-y:auto;overflow-x:hidden;
   background:rgba(247,245,240,.97);
@@ -893,37 +1026,34 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
       <button class="btn btn-ghost" onclick="saveSettings()">Save Profile</button>
     </div>
     <div class="card">
-      <div class="section-label">☁️ Cross-Device Sync</div>
-      <p style="font-size:.78rem;color:var(--text2);margin-bottom:12px;line-height:1.6">Save your data to the cloud so you can access it on your phone <em>and</em> computer. Free, no account needed.</p>
-      <div id="sync-status-box" style="padding:10px 12px;border-radius:8px;background:var(--s2);border:1px solid var(--border);font-size:.78rem;margin-bottom:12px">
-        <span id="sync-status-text" style="color:var(--text3)">Not synced yet</span>
-      </div>
-      <div class="fg"><label>Your Sync Code <span style="color:var(--text3)">(paste this on other devices)</span></label>
-        <div style="display:flex;gap:8px">
-          <input id="sync-code-input" placeholder="e.g. 507f1f77bcf86cd799439011" style="font-family:'JetBrains Mono',monospace;font-size:.75rem;flex:1" readonly/>
-          <button class="btn btn-ghost btn-sm" onclick="copySyncCode()">Copy</button>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <div id="sync-setup" style="display:flex;flex-direction:column;gap:10px">
-          <div style="background:var(--s2);border-radius:var(--r-sm);padding:12px;border:1px solid var(--border)">
-            <div style="font-weight:600;font-size:.85rem;margin-bottom:6px">📱 First device — create a profile</div>
-            <div style="font-size:.78rem;color:var(--text2);margin-bottom:8px">Creates a cloud profile and gives you a sync code to paste on your other device.</div>
-            <button class="btn btn-primary btn-full" onclick="syncCreate()" id="sync-create-btn">☁️ Create Cloud Profile</button>
-          </div>
-          <div style="background:var(--s2);border-radius:var(--r-sm);padding:12px;border:1px solid var(--border)">
-            <div style="font-weight:600;font-size:.85rem;margin-bottom:6px">💻 Second device — enter existing code</div>
-            <div style="font-size:.78rem;color:var(--text2);margin-bottom:8px">Already have a sync code from another device? Enter it here to link this device.</div>
-            <div style="display:flex;gap:6px">
-              <input id="sync-import-input" placeholder="Paste sync code here…" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:.75rem"/>
-              <button class="btn btn-primary" onclick="syncImport()">Link</button>
-            </div>
-          </div>
-        </div>
-        <button class="btn btn-teal btn-sm" onclick="syncPush()" id="sync-push-btn" style="display:none">⬆️ Push</button>
-        <button class="btn btn-ghost btn-sm" onclick="syncPull()" id="sync-pull-btn" style="display:none">⬇️ Pull Latest</button>
+      <div class="section-label">☁️ Account &amp; Sync</div>
+      <p style="font-size:.78rem;color:var(--text2);margin-bottom:14px;line-height:1.6">Sign in with Google to sync your tasks, habits, and goals across your phone and computer — automatically, in real time.</p>
+
+      <!-- Signed out state -->
+      <div id="auth-signed-out">
+        <button onclick="fbSignIn()" style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:11px 16px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:.9rem;font-weight:600;color:#3c4043;width:100%;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:box-shadow .18s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.15)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,.08)'">
+          <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
+          Continue with Google
+        </button>
+        <p style="font-size:.7rem;color:var(--text3);text-align:center;margin-top:10px">Your data is private and only accessible with your Google account.</p>
       </div>
 
+      <!-- Signed in state -->
+      <div id="auth-signed-in" style="display:none">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--s2);border-radius:10px;border:1px solid var(--border);margin-bottom:12px">
+          <img id="auth-avatar" src="" width="36" height="36" style="border-radius:50%;object-fit:cover" onerror="this.style.display='none'"/>
+          <div style="flex:1;min-width:0">
+            <div id="auth-display-name" style="font-weight:600;font-size:.88rem;color:var(--text)"></div>
+            <div id="auth-display-email" style="font-size:.72rem;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+          </div>
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--sage);flex-shrink:0" title="Syncing"></div>
+        </div>
+        <div style="font-size:.75rem;color:var(--text2);margin-bottom:10px;line-height:1.5">✅ Your data syncs automatically across all devices. Changes save within a couple seconds.</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="fbSaveNow().then(()=>toast('✓ Saved to cloud'))">☁️ Save Now</button>
+          <button class="btn btn-danger btn-sm" onclick="fbSignOut()">Sign Out</button>
+        </div>
+      </div>
     </div>
     <div class="card">
       <div class="section-label">🔔 Notifications</div>
@@ -2330,110 +2460,13 @@ async function refreshAllMessages(){
 }
 
 // ════════════════════════════════════════════════════════════════
-// CROSS-DEVICE SYNC (jsonblob.com — free, no signup)
-// ════════════════════════════════════════════════════════════════
-const BLOB_API='https://api.jsonbin.io/v3/b';
-// Helper: generate a unique 24-char sync code locally
-function genSyncId(){return Array.from({length:24},()=>'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random()*36)]).join('')}
-
-function setSyncStatus(msg,color){
-  const el=$('sync-status-text');if(el){el.textContent=msg;el.style.color=color||'var(--text3)'}
-}
-
-function getSyncPayload(){
-  // don't sync UI state or sensitive tokens
-  return{tasks:S.tasks,goals:S.goals,habits:S.habits,habitLogs:S.habitLogs,messages:S.messages,
-    settings:{name:S.settings.name,roles:S.settings.roles,briefTime:S.settings.briefTime}};
-}
-
-async function syncCreate(){
-  const btn=$('sync-create-btn');if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span> Creating…'}
-  setSyncStatus('Creating cloud profile…','var(--amber)');
-  try{
-    // JSONBin.io: POST creates a bin, returns {metadata:{id:"..."}}
-    const r=await fetch(BLOB_API,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-Bin-Private':'false','X-Bin-Name':'taskflow-'+Date.now()},
-      body:JSON.stringify(getSyncPayload())
-    });
-    const rtext=await r.text();
-    let rdata;try{rdata=JSON.parse(rtext)}catch(e){throw new Error('Server error: '+rtext.slice(0,80))}
-    if(!r.ok)throw new Error(rdata.message||'HTTP '+r.status);
-    const id=rdata?.metadata?.id;
-    if(!id)throw new Error('No bin ID in response — JSONBin may be down, try again');
-    S.settings.syncId=id;save();
-    const inp=$('sync-code-input');if(inp)inp.value=id;
-    const setup=$('sync-setup');if(setup)setup.style.display='none';
-    const pp=$('sync-push-btn');if(pp)pp.style.display='';
-    const pl=$('sync-pull-btn');if(pl)pl.style.display='';
-    setSyncStatus('✅ Profile created! Your sync code: '+id+' — copy it and paste on your other device under "Second device".','var(--sage)');
-    toast('✓ Sync profile created — copy your code!');
-  }catch(e){setSyncStatus('Failed: '+e.message,'var(--coral)');toast('Sync error: '+e.message)}
-  if(btn){btn.disabled=false;btn.innerHTML='☁️ Create Cloud Profile'}
-}
-
-async function syncPush(){
-  if(!S.settings.syncId){toast('Create a cloud profile first');return}
-  const btn=$('sync-push-btn');if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span>'}
-  setSyncStatus('Pushing data…','var(--amber)');
-  try{
-    const r=await fetch(`${BLOB_API}/${S.settings.syncId}`,{
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(getSyncPayload())
-    });
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    setSyncStatus('✓ Pushed at '+new Date().toLocaleTimeString(),'var(--sage)');
-    toast('✓ Data pushed to cloud');
-  }catch(e){setSyncStatus('Push failed: '+e.message,'var(--coral)');toast('Push failed: '+e.message)}
-  if(btn){btn.disabled=false;btn.innerHTML='⬆️ Push'}
-}
-
-async function syncPull(){
-  if(!S.settings.syncId){toast('Create a cloud profile first');return}
-  const btn=$('sync-pull-btn');if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span>'}
-  setSyncStatus('Pulling latest…','var(--amber)');
-  try{
-    const r=await fetch(`${BLOB_API}/${S.settings.syncId}`,{
-      headers:{'X-Bin-Meta':'false'}
-    });
-    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'HTTP '+r.status+' — check your sync code')}
-    const resp=await r.json();
-    // JSONBin wraps in {record:{...}} unless X-Bin-Meta:false, then returns data directly
-    const data=resp.record||resp;
-    // merge — cloud wins for content, keep local settings/tokens
-    if(data.tasks)S.tasks=data.tasks;
-    if(data.goals)S.goals=data.goals;
-    if(data.habits)S.habits=data.habits;
-    if(data.habitLogs)S.habitLogs=data.habitLogs;
-    if(data.messages)S.messages=data.messages;
-    save();
-    renderTasks();renderHabits();renderMessages();renderGoals();renderMorning();
-    setSyncStatus('✓ Pulled at '+new Date().toLocaleTimeString(),'var(--sage)');
-    toast('✓ Data pulled from cloud');
-  }catch(e){setSyncStatus('Pull failed: '+e.message,'var(--coral)');toast('Pull failed: '+e.message)}
-  if(btn){btn.disabled=false;btn.innerHTML='⬇️ Pull Latest'}
-}
-
-async function syncImport(){
-  const id=$('sync-import-input')?.value.trim();
-  if(!id){toast('Enter a sync code');return}
-  if(!confirm('This will replace your current data with the cloud data. Continue?'))return;
-  S.settings.syncId=id;save();
-  const inp=$('sync-code-input');if(inp)inp.value=id;
-  await syncPull();
-  const btn=$('sync-create-btn');if(btn)btn.style.display='none';
-  const pp=$('sync-push-btn');if(pp)pp.style.display='';
-  const pl=$('sync-pull-btn');if(pl)pl.style.display='';
-}
-
-function copySyncCode(){
-  const id=S.settings.syncId;
-  if(!id){toast('Create a cloud profile first');return}
-  navigator.clipboard?.writeText(id).then(()=>toast('✓ Sync code copied!')).catch(()=>{
-    const inp=$('sync-code-input');if(inp){inp.select();document.execCommand('copy');toast('✓ Copied!')}
-  });
-}
+// CROSS-DEVICE SYNC: handled by Firebase (see <script type="module"> in <head>)
+function setSyncStatus(){}  // kept for compat
+function syncCreate(){toast('Use the Account & Sync card in Settings — sign in with Google')}
+function syncPush(){window.fbSaveNow&&window.fbSaveNow().then(()=>toast('✓ Saved to cloud'))}
+function syncPull(){toast('Data syncs automatically when signed in')}
+function syncImport(){toast('Just sign in with the same Google account on any device')}
+function copySyncCode(){toast('No sync code needed — just sign in with Google')}
 </script>
 </body>
 </html>
