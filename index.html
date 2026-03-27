@@ -74,7 +74,7 @@ async function loadFromCloud(uid){
       if(d.categories)S.categories=d.categories;
       if(d.distractions)S.distractions=d.distractions;
       if(d.settings){S.settings.name=d.settings.name||S.settings.name;S.settings.roles=d.settings.roles||S.settings.roles;S.settings.briefTime=d.settings.briefTime||S.settings.briefTime;}
-      save(); // mirror to localStorage as backup
+      window.save?.(); // mirror to localStorage as backup
       renderTasks();renderHabits();renderGoals();renderMorning();renderCatFilters();populateGoalSelects();loadSettings();
       toast('✓ Data loaded from your account');
     }
@@ -100,24 +100,15 @@ function updateAuthUI(user){
   }
 }
 
-// Patch save() to also push to cloud (debounced)
+// ── Cloud-save hook: main script's save() calls window._cloudSave() ──
+// This avoids the closure problem where window.save override doesn't affect
+// the main script's internal save() calls.
 let _cloudSaveTimer=null;
-const _origSave=window._origSave||(()=>{});
-function patchedSave(){
-  try{localStorage.setItem('tf_v3',JSON.stringify(S))}catch(e){}
-  if(auth.currentUser){
-    clearTimeout(_cloudSaveTimer);
-    _cloudSaveTimer=setTimeout(()=>window.fbSaveNow(),1500);
-  }
-}
-
-// Wait for app to be ready, then patch save
-window.addEventListener('DOMContentLoaded',()=>{
-  setTimeout(()=>{
-    // Override the save function defined in main script
-    window.save=patchedSave;
-  },100);
-});
+window._cloudSave=function(){
+  if(!auth.currentUser)return;
+  clearTimeout(_cloudSaveTimer);
+  _cloudSaveTimer=setTimeout(()=>window.fbSaveNow(),1500);
+};
 
 onAuthStateChanged(auth,async(user)=>{
   updateAuthUI(user);
@@ -136,7 +127,7 @@ onAuthStateChanged(auth,async(user)=>{
         if(d.habits)S.habits=d.habits;
         if(d.habitLogs)S.habitLogs=d.habitLogs;
         if(d.categories)S.categories=d.categories;
-        save();
+        window.save?.();
         renderTasks();renderHabits();renderGoals();renderMorning();
       }
     });
@@ -472,7 +463,58 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
 .pomo-controls{display:flex;gap:12px;justify-content:center;margin-top:20px}
 .distraction-item{display:flex;gap:10px;align-items:center;padding:10px 12px;background:var(--s2);border-radius:var(--r-sm);margin-bottom:6px;font-size:.86rem;animation:fadeUp .18s ease}
 
-/* ── MESSAGES ────────────────────────────────────────────────────────────── */
+/* ── BREATHING OVERLAY ──────────────────────────────────────────────────── */
+.breath-overlay{position:fixed;inset:0;background:rgba(247,245,240,.97);z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.breath-overlay.open{display:flex}
+.breath-circle{width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,var(--amber-dim),transparent);border:2px solid var(--amber);display:flex;align-items:center;justify-content:center;transition:transform 0s,box-shadow 0s;position:relative}
+.breath-circle.inhale{animation:breatheIn 4s ease-in-out forwards}
+.breath-circle.hold{animation:breatheHold 4s ease-in-out forwards}
+.breath-circle.exhale{animation:breatheOut 4s ease-in-out forwards}
+@keyframes breatheIn{0%{transform:scale(.6);box-shadow:0 0 0 0 var(--amber-dim)}100%{transform:scale(1.2);box-shadow:0 0 40px 10px var(--amber-dim)}}
+@keyframes breatheHold{0%,100%{transform:scale(1.2);box-shadow:0 0 40px 10px var(--amber-dim)}}
+@keyframes breatheOut{0%{transform:scale(1.2);box-shadow:0 0 40px 10px var(--amber-dim)}100%{transform:scale(.6);box-shadow:0 0 0 0 var(--amber-dim)}}
+.breath-label{font-family:'Fraunces',serif;font-size:1.4rem;color:var(--text);margin-top:28px;font-weight:600;letter-spacing:.04em}
+.breath-sub{font-family:'JetBrains Mono',monospace;font-size:.64rem;color:var(--text3);margin-top:8px;text-transform:uppercase;letter-spacing:.14em}
+.breath-dots{display:flex;gap:8px;margin-top:28px}
+.breath-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .3s}
+.breath-dot.active{background:var(--amber)}
+.breath-skip{margin-top:32px;font-size:.76rem;color:var(--text3);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+
+/* ── FOCUS LOCK MODE ────────────────────────────────────────────────────── */
+body.focus-active #bottom-nav .nav-btn:not(.active){opacity:.3;pointer-events:none}
+body.focus-active #bottom-nav::after{content:'🔒 FOCUS';position:absolute;bottom:8px;left:0;right:0;text-align:center;font-family:'JetBrains Mono',monospace;font-size:.48rem;color:var(--amber);letter-spacing:.12em;text-transform:uppercase}
+.focus-lock-banner{background:var(--amber-dim);border:1px solid var(--amber);border-radius:var(--r-sm);padding:8px 14px;font-size:.76rem;color:var(--amber);text-align:center;margin-bottom:14px;display:none;font-family:'JetBrains Mono',monospace;letter-spacing:.04em}
+body.focus-active .focus-lock-banner{display:block}
+
+/* ── ENERGY LEVEL ───────────────────────────────────────────────────────── */
+.energy-row{display:flex;gap:6px;justify-content:center;margin-top:8px}
+.energy-btn{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:transparent;cursor:pointer;font-size:1rem;transition:all .18s;display:flex;align-items:center;justify-content:center}
+.energy-btn.picked{border-color:var(--amber);background:var(--amber-dim);transform:scale(1.18)}
+
+/* ── POST-SESSION REFLECTION ────────────────────────────────────────────── */
+.reflect-modal{background:var(--s1);border-radius:var(--r) var(--r) 0 0;padding:28px 24px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto}
+.reflect-modal textarea{font-size:15px;min-height:80px}
+
+/* ── CALENDAR EVENTS ────────────────────────────────────────────────────── */
+.cal-event{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);background:var(--s2);border-left:3px solid var(--blue);margin-bottom:6px;font-size:.8rem}
+.cal-event.busy{border-left-color:var(--coral)}
+.cal-event .cal-time{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--text3);white-space:nowrap}
+.cal-event .cal-title{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-free-slot{padding:7px 10px;border-radius:var(--r-sm);background:var(--sage-dim);border:1px dashed var(--sage);font-size:.76rem;color:var(--sage);margin-bottom:6px;cursor:pointer;transition:background .18s}
+.cal-free-slot:hover{background:var(--teal-dim)}
+
+/* ── VOICE CAPTURE ──────────────────────────────────────────────────────── */
+.mic-btn{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--border);background:var(--s2);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0}
+.mic-btn:hover{border-color:var(--amber);background:var(--amber-dim)}
+.mic-btn.recording{border-color:var(--coral);background:var(--coral-dim);animation:micPulse .7s ease-in-out infinite}
+@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 var(--coral-dim)}50%{box-shadow:0 0 0 8px transparent}}
+
+/* ── MCP MESSAGES ───────────────────────────────────────────────────────── */
+.mcp-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:.58rem;font-family:'JetBrains Mono',monospace;font-weight:600}
+.mcp-badge.connected{background:var(--sage-dim);color:var(--sage)}
+.mcp-badge.disconnected{background:var(--s3);color:var(--text3)}
+.source-btn{flex:1;padding:10px 8px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--s2);cursor:pointer;font-size:.76rem;font-family:'Outfit',sans-serif;font-weight:600;color:var(--text2);text-align:center;transition:all .18s;min-height:48px}
+.source-btn:hover,.source-btn.active{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
 .msg-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;animation:fadeUp .2s ease}
 .msg-card.needs-reply{border-left:3px solid var(--coral)}
 .msg-card.replied{opacity:.45}
@@ -729,6 +771,7 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
     <div class="section-label">💡 Quick Idea</div>
     <div style="display:flex;gap:8px">
       <input id="quick-input" placeholder="e.g. reply to Dr. Chen about collaboration, set up experiment this week" onkeydown="if(event.key==='Enter')quickCapture()" style="flex:1"/>
+      <button class="mic-btn" id="voice-btn" onclick="toggleVoiceCapture()" title="Voice input">🎙</button>
       <button class="btn btn-ai" onclick="quickCapture()" id="quick-btn">🤖 Parse</button>
     </div>
     <p style="font-size:.74rem;color:var(--text3);margin-top:6px">AI assigns project, due date, and creates an implementation intention from your goals.</p>
@@ -812,6 +855,7 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
 
 <!-- ════════════ FOCUS ════════════ -->
 <div class="page" id="page-focus" style="overflow-x:hidden">
+  <div class="focus-lock-banner" id="focus-lock-banner">🔒 Focus session in progress — stay in the zone!</div>
   <div class="two-col" style="overflow-x:hidden">
     <div>
       <div class="card" style="text-align:center;padding:24px 20px">
@@ -836,8 +880,8 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
         </div>
       </div>
       <div class="card" id="affect-section" style="display:none">
-        <div class="section-label">💬 Affect Check-in</div>
-        <p style="font-size:.8rem;color:var(--text2);margin-bottom:6px">How do you feel about starting this session?<br><span style="font-size:.72rem;color:var(--text3)">(Research: naming your emotion reduces task aversion)</span></p>
+        <div class="section-label">💬 How are you feeling?</div>
+        <p style="font-size:.8rem;color:var(--text2);margin-bottom:6px">Name your emotion before starting — it reduces task aversion.<br><span style="font-size:.72rem;color:var(--text3)">(Affect labeling activates prefrontal cortex, calms amygdala)</span></p>
         <div class="affect-row">
           <button class="affect-btn" onclick="pickAffect('Anxious 😟',this)">Anxious 😟</button>
           <button class="affect-btn" onclick="pickAffect('Bored 😑',this)">Bored 😑</button>
@@ -847,7 +891,18 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
           <button class="affect-btn" onclick="pickAffect('Focused 🎯',this)">Focused 🎯</button>
         </div>
         <div id="affect-reframe" style="margin-top:10px;display:none" class="coach-bubble"></div>
-        <button class="btn btn-primary btn-full" onclick="startFocusSession()" id="start-focus-btn" style="margin-top:10px" disabled>Start Session</button>
+        <!-- Energy level before session -->
+        <div style="margin-top:12px;display:none" id="energy-section">
+          <p style="font-size:.76rem;color:var(--text2);margin-bottom:6px">Energy level right now?</p>
+          <div class="energy-row" id="energy-row">
+            <button class="energy-btn" data-e="1" onclick="pickEnergy(1,this)" title="Exhausted">😴</button>
+            <button class="energy-btn" data-e="2" onclick="pickEnergy(2,this)" title="Low">😑</button>
+            <button class="energy-btn" data-e="3" onclick="pickEnergy(3,this)" title="OK">🙂</button>
+            <button class="energy-btn" data-e="4" onclick="pickEnergy(4,this)" title="Good">😊</button>
+            <button class="energy-btn" data-e="5" onclick="pickEnergy(5,this)" title="Energised">🔥</button>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="beginBreathing()" id="start-focus-btn" style="margin-top:12px" disabled>🌬 Breathe &amp; Start</button>
       </div>
       <div class="card">
         <div class="section-label">🎯 Focus On</div>
@@ -857,6 +912,16 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
       </div>
     </div>
     <div>
+      <div class="card" id="cal-card">
+        <div class="section-label" style="justify-content:space-between">
+          <span>📅 Today's Calendar</span>
+          <button class="btn btn-ghost btn-sm" onclick="fetchCalendarEvents()" id="cal-fetch-btn" style="font-size:.68rem;padding:4px 8px;min-height:28px">Sync</button>
+        </div>
+        <div id="cal-events" style="font-size:.78rem;color:var(--text3)">
+          <p>Connect Google Calendar to see your schedule and free blocks.<br>
+          <button class="btn btn-teal btn-sm" style="margin-top:8px" onclick="connectGoogleCal()">🗓 Connect Google Calendar</button></p>
+        </div>
+      </div>
       <div class="card">
         <div class="section-label">🧹 Distraction Parking Lot</div>
         <p style="font-size:.74rem;color:var(--text3);margin-bottom:10px">Thoughts that pop up during focus? Park them here — don't derail.</p>
@@ -882,41 +947,31 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
 <div class="page" id="page-messages">
   <div class="two-col">
     <div>
-      <!-- Slack -->
+      <!-- AI Triage Panel -->
       <div class="card" style="margin-bottom:14px">
-        <div class="section-label">💜 Connect Slack</div>
-        <div class="fg"><label>Slack Bot/User Token</label><input id="slack-token" type="password" placeholder="xoxb-… or xoxp-…" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
-        <button class="btn btn-full" style="background:#4a154b;color:#fff;margin-bottom:8px" onclick="saveSlackToken()">Save &amp; Fetch Slack</button>
-        <div id="slack-status" style="font-size:.72rem;color:var(--text3);line-height:1.5">
-          Get a token at <a href="https://api.slack.com/apps" target="_blank" style="color:var(--teal)">api.slack.com/apps</a> → Create App → OAuth &amp; Permissions → Bot Token Scopes: <code style="font-size:.68rem">channels:history, channels:read, users:read</code> → Install to workspace.
+        <div class="section-label">🤖 AI Inbox Triage</div>
+        <p style="font-size:.78rem;color:var(--text2);margin-bottom:12px;line-height:1.55">Fetch messages from your connected platforms or paste them. AI extracts tasks and flags what needs a reply.</p>
+        <!-- Source buttons -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <button class="source-btn" id="src-slack" onclick="triggerSourceFetch('slack',this)" title="Fetch from Slack">
+            <div style="font-size:1.1rem">💜</div><div style="margin-top:2px">Slack</div>
+            <div class="mcp-badge disconnected" id="slack-badge" style="margin:4px auto 0">not set up</div>
+          </button>
+          <button class="source-btn" id="src-gmail" onclick="triggerSourceFetch('gmail',this)" title="Fetch from Gmail">
+            <div style="font-size:1.1rem">📧</div><div style="margin-top:2px">Gmail</div>
+            <div class="mcp-badge disconnected" id="gmail-badge" style="margin:4px auto 0">not set up</div>
+          </button>
+          <button class="source-btn" id="src-discord" onclick="triggerSourceFetch('discord',this)" title="Fetch from Discord">
+            <div style="font-size:1.1rem">🎮</div><div style="margin-top:2px">Discord</div>
+            <div class="mcp-badge disconnected" id="discord-badge" style="margin:4px auto 0">not set up</div>
+          </button>
         </div>
-        <div id="slack-channels" style="margin-top:10px;display:none">
-          <label style="font-size:.78rem;color:var(--text2);font-weight:500">Channels to monitor</label>
-          <div id="slack-channel-list" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px"></div>
-          <button class="btn btn-teal btn-sm btn-full" style="margin-top:10px" onclick="fetchSlackMessages()">🔄 Fetch New Messages</button>
-        </div>
+        <button class="btn btn-teal btn-full btn-sm" onclick="refreshAllMessages()">🔄 Refresh All Connected</button>
       </div>
-      <!-- Discord -->
-      <div class="card" style="margin-bottom:14px">
-        <div class="section-label">🎮 Connect Discord</div>
-        <div class="fg"><label>Discord Bot Token</label><input id="discord-token" type="password" placeholder="Your bot token" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
-        <div class="fg"><label>Channel ID(s) to monitor <span style="color:var(--text3)">(comma-separated)</span></label><input id="discord-channels-input" placeholder="1234567890, 9876543210"/></div>
-        <button class="btn btn-full" style="background:#5865F2;color:#fff;margin-bottom:8px" onclick="saveDiscordToken()">Save &amp; Fetch Discord</button>
-        <div style="font-size:.72rem;color:var(--text3);line-height:1.5">
-          <a href="https://discord.com/developers/applications" target="_blank" style="color:var(--teal)">discord.com/developers</a> → New Application → Bot → Reset Token. Enable: Message Content Intent. Add bot to server with <code style="font-size:.68rem">Read Message History</code> permission.
-        </div>
-      </div>
-      <!-- Gmail -->
-      <div class="card" style="margin-bottom:14px">
-        <div class="section-label">📧 Connect Gmail</div>
-        <div class="fg"><label>Gmail OAuth Client ID</label><input id="gmail-client-id" placeholder="your-id.apps.googleusercontent.com" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
-        <button class="btn btn-teal btn-full" onclick="connectGmail()" id="gmail-btn">Connect Gmail</button>
-        <p style="font-size:.7rem;color:var(--text3);margin-top:8px;line-height:1.5">Get a free Client ID at <a href="https://console.cloud.google.com" target="_blank" style="color:var(--teal)">console.cloud.google.com</a> → APIs → Gmail API → OAuth (Web app). Set redirect URI to this page's URL.</p>
-        <div id="gmail-status" style="margin-top:8px;font-size:.72rem;color:var(--sage);display:none">✓ Gmail connected</div>
-      </div>
+
       <!-- Paste fallback -->
       <div class="card" style="margin-bottom:14px">
-        <div class="section-label">📋 Paste Messages</div>
+        <div class="section-label">📋 Paste &amp; Analyze</div>
         <div class="fg"><label>Platform</label>
           <select id="msg-platform">
             <option value="discord">Discord</option>
@@ -926,10 +981,43 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
         </div>
         <div class="fg"><label>Your name/handle</label><input id="msg-username" placeholder="@daniella"/></div>
         <div class="fg"><label>Paste messages</label>
-          <textarea id="msg-paste" style="min-height:100px;font-family:'JetBrains Mono',monospace;font-size:.75rem" placeholder="[10:34 AM] john: @daniella can you review the PR by Friday?"></textarea>
+          <textarea id="msg-paste" style="min-height:100px;font-family:'JetBrains Mono',monospace;font-size:.75rem" placeholder="[10:34 AM] mak: @daniella can you review the PR by Friday?&#10;[10:35 AM] kirti: Let's sync on Ajna pitch deck before Thursday"></textarea>
         </div>
-        <button class="btn btn-ai btn-full" onclick="parseMessages()" id="msg-parse-btn">🤖 Extract Tasks &amp; Reminders</button>
+        <button class="btn btn-ai btn-full" onclick="parseMessages()" id="msg-parse-btn">🤖 Extract Tasks &amp; Replies</button>
       </div>
+
+      <!-- Connection Setup (collapsed by default) -->
+      <details class="card" style="margin-bottom:14px">
+        <summary style="cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.15em;padding:2px 0">⚙ Platform Setup</summary>
+        <div style="margin-top:14px">
+          <!-- Slack -->
+          <div style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px">
+            <div style="font-weight:600;font-size:.84rem;margin-bottom:8px">💜 Slack</div>
+            <div class="fg"><label>Bot/User Token (xoxb-… or xoxp-…)</label><input id="slack-token" type="password" placeholder="xoxb-…" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
+            <button class="btn btn-full btn-sm" style="background:#4a154b;color:#fff" onclick="saveSlackToken()">Save &amp; Connect Slack</button>
+            <div id="slack-channels" style="margin-top:10px;display:none">
+              <label style="font-size:.78rem;color:var(--text2);font-weight:500;display:block;margin-bottom:6px">Monitor channels:</label>
+              <div id="slack-channel-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+            </div>
+          </div>
+          <!-- Discord -->
+          <div style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px">
+            <div style="font-weight:600;font-size:.84rem;margin-bottom:8px">🎮 Discord</div>
+            <div class="fg"><label>Bot Token</label><input id="discord-token" type="password" placeholder="Your bot token" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
+            <div class="fg"><label>Channel IDs (comma-separated)</label><input id="discord-channels-input" placeholder="1234567890, 9876543210"/></div>
+            <button class="btn btn-full btn-sm" style="background:#5865F2;color:#fff" onclick="saveDiscordToken()">Save &amp; Connect Discord</button>
+          </div>
+          <!-- Gmail -->
+          <div>
+            <div style="font-weight:600;font-size:.84rem;margin-bottom:8px">📧 Gmail</div>
+            <div class="fg"><label>OAuth Client ID</label><input id="gmail-client-id" placeholder="your-id.apps.googleusercontent.com" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
+            <button class="btn btn-teal btn-full btn-sm" onclick="connectGmail()" id="gmail-btn">Connect Gmail + Calendar</button>
+            <p style="font-size:.7rem;color:var(--text3);margin-top:6px;line-height:1.5">From <a href="https://console.cloud.google.com" target="_blank" style="color:var(--teal)">console.cloud.google.com</a> → Enable Gmail + Calendar APIs → OAuth credentials → Web app. Add this page's URL as redirect URI.</p>
+            <div id="gmail-status" style="margin-top:6px;font-size:.72rem;color:var(--sage);display:none">✓ Gmail connected</div>
+          </div>
+        </div>
+      </details>
+
       <!-- Reply settings -->
       <div class="card">
         <div class="section-label">⏰ Reply Reminders</div>
@@ -942,7 +1030,7 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
     <div>
       <div class="sec-hdr">
         <h2>Message Inbox</h2>
-        <button class="btn btn-teal btn-sm" onclick="refreshAllMessages()">🔄 Refresh All</button>
+        <div id="msg-fetch-status" style="font-size:.7rem;color:var(--text3);font-family:'JetBrains Mono',monospace"></div>
       </div>
       <div class="chips" style="margin-bottom:14px">
         <button class="chip active" onclick="setMsgF('all',this)">All</button>
@@ -1092,6 +1180,50 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
 </div><!-- /content -->
 </div><!-- /app -->
 
+<!-- ── BREATHING OVERLAY ─────────────────────────────────────────────────── -->
+<div class="breath-overlay" id="breath-overlay">
+  <div style="text-align:center">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.14em;margin-bottom:24px">Box breathing · 3 cycles</div>
+    <div class="breath-circle" id="breath-circle">
+      <span style="font-size:2rem" id="breath-count">4</span>
+    </div>
+    <div class="breath-label" id="breath-label">Breathe in</div>
+    <div class="breath-sub" id="breath-sub">Inhale slowly through your nose</div>
+    <div class="breath-dots" id="breath-dots">
+      <div class="breath-dot" id="bdot-0"></div>
+      <div class="breath-dot" id="bdot-1"></div>
+      <div class="breath-dot" id="bdot-2"></div>
+    </div>
+    <div class="breath-skip" onclick="skipBreathing()">Skip and start now</div>
+  </div>
+</div>
+
+<!-- ── POST-SESSION REFLECTION ───────────────────────────────────────────── -->
+<div class="modal-overlay" id="reflect-modal">
+  <div class="reflect-modal">
+    <div class="modal-title" style="font-size:1.05rem">🎉 Session complete!</div>
+    <p style="font-size:.82rem;color:var(--text2);margin-bottom:14px;line-height:1.6">Reflection helps your brain consolidate the work and improves future planning.</p>
+    <div class="fg">
+      <label>What did you accomplish this session?</label>
+      <textarea id="reflect-accomplished" placeholder="e.g. Finished the methods section intro, reviewed three papers…"></textarea>
+    </div>
+    <div class="fg" style="margin-bottom:8px">
+      <label>Energy level after session</label>
+      <div class="energy-row" id="reflect-energy-row">
+        <button class="energy-btn" data-e="1" onclick="pickReflectEnergy(1,this)" title="Exhausted">😴</button>
+        <button class="energy-btn" data-e="2" onclick="pickReflectEnergy(2,this)" title="Low">😑</button>
+        <button class="energy-btn" data-e="3" onclick="pickReflectEnergy(3,this)" title="OK">🙂</button>
+        <button class="energy-btn" data-e="4" onclick="pickReflectEnergy(4,this)" title="Good">😊</button>
+        <button class="energy-btn" data-e="5" onclick="pickReflectEnergy(5,this)" title="Energised">🔥</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('reflect-modal')">Skip</button>
+      <button class="btn btn-primary btn-sm" onclick="saveReflection()">Save ✓</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── COACH MODAL ───────────────────────────────────────────────────────── -->
 <div class="modal-overlay" id="coach-modal">
   <div class="modal">
@@ -1161,7 +1293,7 @@ const getCategories=()=>S.categories&&S.categories.length?S.categories:[{id:'res
 
 
 function load(){try{const d=localStorage.getItem('tf_v3');if(d){const p=JSON.parse(d);S={...S,...p,ui:{...S.ui,...(p.ui||{})}}}}catch(e){}}
-function save(){try{localStorage.setItem('tf_v3',JSON.stringify(S))}catch(e){}}
+function save(){try{localStorage.setItem('tf_v3',JSON.stringify(S))}catch(e){}window._cloudSave?.()}
 
 // ════════════════════════════════════════════════════════════════
 // UTILS
@@ -1192,7 +1324,7 @@ function go(tab){
   if(tab==='tasks'){renderCatFilters();populateGoalSelects();renderTasks();renderMorning()}
   if(tab==='habits'){renderHabits()}
   if(tab==='goals'){renderGoals()}
-  if(tab==='messages'){renderMessages()}
+  if(tab==='messages'){renderMessages();updateSourceBadges()}
   if(tab==='focus'){renderFocusStats();renderDistractions();renderScienceTip();populatePomoTaskSel()}
   if(tab==='insights'){renderInsights()}
   if(tab==='settings'){loadSettings()}
@@ -1312,7 +1444,8 @@ User: ${userCtx()}\nGoals:\n${goalsCtx()}`;
   btn.disabled=false;btn.innerHTML='🤖';
 }
 
-function toggleDone(id){const t=S.tasks.find(t=>t.id===id);if(t){t.done=!t.done;save();renderTasks()}}
+const haptic=(ms=50)=>{try{navigator.vibrate?.(ms)}catch(e){}};
+function toggleDone(id){const t=S.tasks.find(t=>t.id===id);if(t){t.done=!t.done;if(t.done)haptic([50,30,50]);save();renderTasks()}}
 function deleteTask(id){S.tasks=S.tasks.filter(t=>t.id!==id);save();renderTasks();toast('Removed')}
 
 // ── EDIT TASK ──────────────────────────────────────────────────────────────
@@ -1759,7 +1892,9 @@ function addHabit(){
 function toggleHabit(id){
   const key=todayKey();
   if(!S.habitLogs[key])S.habitLogs[key]={};
-  S.habitLogs[key][id]=!S.habitLogs[key][id];
+  const nowDone=!S.habitLogs[key][id];
+  S.habitLogs[key][id]=nowDone;
+  if(nowDone)haptic([40,20,40,20,80]);
   save();renderHabits();
 }
 
@@ -1846,57 +1981,132 @@ function togglePomo(){
 
 function startPomo(){
   S.ui.pomoRunning=true;$('pomo-btn').textContent='⏸ Pause';
+  document.body.classList.add('focus-active');
   S.ui.pomoInterval=setInterval(()=>{
     S.ui.pomoSecs--;updatePomoDisplay();
     if(S.ui.pomoSecs<=0){completePomo()}
   },1000);
 }
 
-function pausePomo(){S.ui.pomoRunning=false;$('pomo-btn').textContent='▶ Resume';clearInterval(S.ui.pomoInterval)}
-function resetPomo(){pausePomo();S.ui.pomoSecs=S.ui.pomoTotal;S.ui.affectPicked='';updatePomoDisplay();$('pomo-btn').textContent='▶ Start';document.querySelectorAll('.affect-btn').forEach(b=>b.classList.remove('picked'));$('affect-reframe').style.display='none';$('start-focus-btn').disabled=true}
+function pausePomo(){S.ui.pomoRunning=false;$('pomo-btn').textContent='▶ Resume';clearInterval(S.ui.pomoInterval);document.body.classList.remove('focus-active')}
+function resetPomo(){pausePomo();S.ui.pomoSecs=S.ui.pomoTotal;S.ui.affectPicked='';S.ui.energyLevel=null;updatePomoDisplay();$('pomo-btn').textContent='▶ Start';document.querySelectorAll('.affect-btn').forEach(b=>b.classList.remove('picked'));document.querySelectorAll('#energy-row .energy-btn').forEach(b=>b.classList.remove('picked'));$('affect-reframe').style.display='none';$('start-focus-btn').disabled=true;$('start-focus-btn').textContent='🌬 Breathe & Start';document.body.classList.remove('focus-active')}
 
 function completePomo(){
   clearInterval(S.ui.pomoInterval);S.ui.pomoRunning=false;
+  document.body.classList.remove('focus-active');
+  haptic([100,50,100,50,200]);
   if(S.ui.pomoMode==='work'||S.ui.pomoMode==='deep'){
     S.ui.pomoCount++;S.ui.pomoDayTotal++;
-    S.focusSessions.push({date:todayDateStr(),mode:S.ui.pomoMode,dur:S.ui.pomoTotal,task:$('pomo-task-sel').value||'',completed:true});
+    S.focusSessions.push({date:todayDateStr(),mode:S.ui.pomoMode,dur:S.ui.pomoTotal,task:$('pomo-task-sel').value||'',energyBefore:S.ui.energyLevel||null,completed:true});
     save();
+    // Show reflection modal
+    setTimeout(()=>{$('reflect-modal').classList.add('open')},400);
   }
   // ── Full UI reset so next session starts clean ──
   $('pomo-btn').textContent='▶ Start';
   S.ui.pomoSecs=S.ui.pomoTotal;
-  S.ui.affectPicked='';
-  // Clear affect check-in
+  S.ui.affectPicked='';S.ui.energyLevel=null;
   document.querySelectorAll('.affect-btn').forEach(b=>b.classList.remove('picked'));
+  document.querySelectorAll('#energy-row .energy-btn').forEach(b=>b.classList.remove('picked'));
   const reframe=$('affect-reframe');if(reframe){reframe.style.display='none';reframe.textContent=''}
-  // Re-show affect section (required for next work session start)
+  const energySec=$('energy-section');if(energySec)energySec.style.display='none';
   const affSec=$('affect-section');
   if(affSec){affSec.style.display=(S.ui.pomoMode==='work'||S.ui.pomoMode==='deep')?'block':'none'}
-  // Disable start button until affect is re-picked
-  const startBtn=$('start-focus-btn');if(startBtn)startBtn.disabled=true;
-  // Clear distraction input (keep logged distractions — user may want to review)
+  const startBtn=$('start-focus-btn');if(startBtn){startBtn.disabled=true;startBtn.textContent='🌬 Breathe & Start';}
   const di=$('distraction-input');if(di)di.value='';
-  // Reset task selector to blank
   const taskSel=$('pomo-task-sel');if(taskSel)taskSel.value='';
-  // Update counters
   $('pomo-count').textContent=S.ui.pomoCount;
   $('pomo-total').textContent=S.ui.pomoDayTotal;
   updatePomoDisplay();
   if(S.settings.notif&&Notification.permission==='granted')
-    new Notification('TaskFlow',{body:S.ui.pomoMode==='work'?'✓ Pomodoro done! Time for a break 🎉':'Break over — ready to focus? 💪'});
-  toast(S.ui.pomoMode==='work'?'🎉 Session complete! How do you feel going into the break?':'Break over. Pick your focus state to start.');
+    new Notification('TaskFlow',{body:S.ui.pomoMode==='work'?'✓ Session done! 🎉':'Break over — ready to focus? 💪'});
+  if(S.ui.pomoMode!=='work'&&S.ui.pomoMode!=='deep')
+    toast('Break over. Pick your focus state to start.');
   renderFocusStats();
 }
 
 function skipPomo(){resetPomo()}
 
+// ── ENERGY TRACKING ───────────────────────────────────────────────────────
+function pickEnergy(level,el){
+  S.ui.energyLevel=level;
+  document.querySelectorAll('#energy-row .energy-btn').forEach(b=>b.classList.remove('picked'));
+  el.classList.add('picked');
+}
+function pickReflectEnergy(level,el){
+  document.querySelectorAll('#reflect-energy-row .energy-btn').forEach(b=>b.classList.remove('picked'));
+  el.classList.add('picked');
+  el.dataset.selected='1';
+}
+function saveReflection(){
+  const accomplished=$('reflect-accomplished')?.value.trim();
+  const energyEl=document.querySelector('#reflect-energy-row .energy-btn[data-selected="1"]');
+  const energyAfter=energyEl?parseInt(energyEl.dataset.e):null;
+  if(S.focusSessions.length){
+    const last=S.focusSessions[S.focusSessions.length-1];
+    if(accomplished)last.reflection=accomplished;
+    if(energyAfter)last.energyAfter=energyAfter;
+  }
+  save();
+  $('reflect-accomplished').value='';
+  document.querySelectorAll('#reflect-energy-row .energy-btn').forEach(b=>{b.classList.remove('picked');delete b.dataset.selected});
+  closeModal('reflect-modal');
+  toast('✓ Reflection saved');
+}
+
+// ── BREATHING RITUAL ──────────────────────────────────────────────────────
+let _breathTimer=null,_breathCycle=0,_breathPhase=0;
+const BREATH_PHASES=[
+  {label:'Breathe in',sub:'Inhale slowly through your nose',cls:'inhale',secs:4},
+  {label:'Hold',sub:'Hold at the top',cls:'hold',secs:4},
+  {label:'Breathe out',sub:'Exhale slowly through your mouth',cls:'exhale',secs:4},
+  {label:'Hold',sub:'Hold at the bottom',cls:'hold',secs:4}
+];
+function beginBreathing(){
+  const overlay=$('breath-overlay');
+  overlay.classList.add('open');
+  _breathCycle=0;_breathPhase=0;
+  runBreathPhase();
+}
+function runBreathPhase(){
+  if(_breathCycle>=3){finishBreathing();return}
+  const phase=BREATH_PHASES[_breathPhase];
+  const circle=$('breath-circle');const lbl=$('breath-label');const sub=$('breath-sub');
+  const cnt=$('breath-count');
+  // update dots
+  [$('bdot-0'),$('bdot-1'),$('bdot-2')].forEach((d,i)=>{if(d)d.classList.toggle('active',i===_breathCycle)});
+  circle.className='breath-circle '+phase.cls;
+  lbl.textContent=phase.label;sub.textContent=phase.sub;
+  // countdown
+  let t=phase.secs;cnt.textContent=t;
+  clearInterval(_breathTimer);
+  _breathTimer=setInterval(()=>{
+    t--;cnt.textContent=Math.max(0,t);
+    if(t<=0){
+      clearInterval(_breathTimer);
+      _breathPhase++;
+      if(_breathPhase>=4){_breathPhase=0;_breathCycle++;}
+      runBreathPhase();
+    }
+  },1000);
+}
+function finishBreathing(){
+  clearInterval(_breathTimer);
+  $('breath-overlay').classList.remove('open');
+  startPomo();
+}
+function skipBreathing(){
+  clearInterval(_breathTimer);
+  $('breath-overlay').classList.remove('open');
+  startPomo();
+}
+
 function pickAffect(emotion,el){
   S.ui.affectPicked=emotion;
   document.querySelectorAll('.affect-btn').forEach(b=>b.classList.remove('picked'));
   el.classList.add('picked');
-  // Science-based reframe
   const reframes={
-    'Anxious 😟':'Named it! Research shows simply labeling anxiety as "anxiety" reduces the amygdala response. Try: "I\'m choosing to feel this discomfort for 25 minutes — and that\'s okay."',
+    'Anxious 😟':'Named it! Research shows simply labeling anxiety reduces the amygdala response. Try: "I\'m choosing to feel this discomfort for 25 minutes — and that\'s okay."',
     'Bored 😑':'Boredom often means a task feels below your skill level. Try: Make it a game — can you finish one more sub-task than last time?',
     'Overwhelmed 😤':'The task feels large. Break it: What\'s the ONE smallest action you could do right now? Just that.',
     'Distracted 🦋':'Your brain is seeking novelty dopamine. The parking lot below is for those thoughts. Just write them down and come back.',
@@ -1904,10 +2114,12 @@ function pickAffect(emotion,el){
     'Focused 🎯':'Perfect. Channel it. Protect this state — turn off notifications.'
   };
   const r=$('affect-reframe');r.style.display='block';r.textContent=reframes[emotion]||'Great. You\'ve got this.';
+  // Show energy picker
+  const energySec=$('energy-section');if(energySec)energySec.style.display='block';
   $('start-focus-btn').disabled=false;
 }
 
-function startFocusSession(){startPomo()}
+function startFocusSession(){beginBreathing()}
 
 function parkDistraction(){
   const input=$('distraction-input');const val=input.value.trim();if(!val)return;
@@ -2228,6 +2440,7 @@ function loadSettings(){
     setSyncStatus('✓ Sync active — code: '+S.settings.syncId.substring(0,8)+'…','var(--sage)');
   }
   renderCatManager();
+  updateSourceBadges();
 }
 
 function saveApiKey(){S.settings.apiKey=$('api-key-input').value.trim();save();updateAiDots();toast('✓ API key saved')}
@@ -2297,9 +2510,9 @@ function closeModal(id){$(id).classList.remove('open')}
 // ════════════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded',()=>{
   load();
-  // migrate old data: ensure categories exist
   if(!S.categories||!S.categories.length)S.categories=[{id:'research',name:'Research',emoji:'🔬'},{id:'startup',name:'Startup',emoji:'🚀'},{id:'personal',name:'Personal',emoji:'🌿'},{id:'admin',name:'Admin',emoji:'📋'}];
   handleGmailCallback();
+  handleGoogleCalToken();
   updatePomoDisplay();
   renderCatFilters();
   populateGoalSelects();
@@ -2308,16 +2521,15 @@ window.addEventListener('DOMContentLoaded',()=>{
   renderMorning();
   updateReplyBadge();
   updateAiDots();
+  updateSourceBadges();
   loadSettings();
   renderScienceTip();
-  // Tab from URL
+  // Restore cal token from saved gmailToken
+  if(S.settings.gmailToken)_calToken=S.settings.gmailToken;
   const urlTab=new URLSearchParams(location.search).get('tab');
   if(urlTab)go(urlTab);
-  // Schedule all reminders
   S.tasks.forEach(scheduleReminder);
-  // Reply check every 30min
   setInterval(()=>{checkReplies();updateReplyBadge()},30*60000);
-  // Service worker
   if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 });
 
@@ -2457,6 +2669,186 @@ async function refreshAllMessages(){
   if(S.settings.slackToken&&(S.settings.slackChannels||[]).some(c=>c.selected))await fetchSlackMessages();
   if(S.settings.discordToken&&S.settings.discordChannelIds)await fetchDiscordMessages();
   if(S.settings.gmailToken)await fetchGmailMessages();
+}
+
+// ════════════════════════════════════════════════════════════════
+// GOOGLE CALENDAR
+// ════════════════════════════════════════════════════════════════
+let _calToken=null;
+
+function connectGoogleCal(){
+  const clientId=S.settings.gmailClientId||$('gmail-client-id')?.value.trim();
+  if(!clientId){toast('Enter your Google OAuth Client ID in Platform Setup first');return}
+  const scope=encodeURIComponent('https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.readonly');
+  const redirect=encodeURIComponent(location.href.split('?')[0]);
+  const url=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirect}&response_type=token&scope=${scope}&prompt=consent`;
+  location.href=url;
+}
+
+function handleGoogleCalToken(){
+  const hash=location.hash;
+  if(!hash.includes('access_token'))return;
+  const params=new URLSearchParams(hash.slice(1));
+  const token=params.get('access_token');
+  if(token){
+    _calToken=token;
+    S.settings.gmailToken=token;
+    save();
+    history.replaceState(null,'',location.pathname+location.search);
+    toast('✓ Google connected — fetching calendar…');
+    fetchCalendarEvents();
+    updateSourceBadges();
+  }
+}
+
+async function fetchCalendarEvents(){
+  const token=_calToken||S.settings.gmailToken;
+  if(!token){connectGoogleCal();return}
+  const btn=$('cal-fetch-btn');if(btn)btn.textContent='…';
+  const cont=$('cal-events');if(!cont)return;
+  try{
+    const today=new Date();today.setHours(0,0,0,0);
+    const tomorrow=new Date(today);tomorrow.setDate(today.getDate()+1);
+    const r=await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${today.toISOString()}&timeMax=${tomorrow.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=15`,
+      {headers:{Authorization:`Bearer ${token}`}}
+    );
+    if(r.status===401){S.settings.gmailToken='';_calToken=null;save();cont.innerHTML='<p style="font-size:.78rem;color:var(--coral)">Session expired. <button class="btn btn-teal btn-sm" onclick="connectGoogleCal()">Reconnect</button></p>';return}
+    const data=await r.json();
+    const events=data.items||[];
+    if(!events.length){cont.innerHTML='<p style="font-size:.78rem;color:var(--text3)">No events today 🎉</p>';return}
+    cont.innerHTML='';
+    let busySlots=[];
+    events.forEach(ev=>{
+      const start=ev.start?.dateTime?new Date(ev.start.dateTime):null;
+      const end=ev.end?.dateTime?new Date(ev.end.dateTime):null;
+      const timeStr=start?start.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+
+        (end?' – '+end.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):''):'All day';
+      const isBusy=ev.status!=='cancelled'&&start;
+      const div=document.createElement('div');
+      div.className='cal-event'+(isBusy?' busy':'');
+      div.innerHTML=`<span class="cal-time">${timeStr}</span><span class="cal-title">${esc(ev.summary||'Untitled')}</span>`;
+      cont.appendChild(div);
+      if(isBusy&&start&&end)busySlots.push({start,end});
+    });
+    // Show free blocks
+    renderFreeBlocks(busySlots,cont);
+  }catch(e){cont.innerHTML=`<p style="font-size:.78rem;color:var(--coral)">Calendar error: ${e.message}</p>`}
+  if(btn)btn.textContent='Sync';
+}
+
+function renderFreeBlocks(busySlots,cont){
+  if(!busySlots.length)return;
+  const now=new Date();const endOfDay=new Date();endOfDay.setHours(21,0,0,0);
+  let cursor=now>new Date().setHours(8,0,0,0)?now:new Date(new Date().setHours(8,0,0,0));
+  const sorted=busySlots.sort((a,b)=>a.start-b.start);
+  const freeBlocks=[];
+  for(const slot of sorted){
+    if(slot.start>cursor){
+      const mins=Math.round((slot.start-cursor)/60000);
+      if(mins>=25)freeBlocks.push({start:new Date(cursor),end:slot.start,mins});
+    }
+    if(slot.end>cursor)cursor=slot.end;
+  }
+  if(cursor<endOfDay){
+    const mins=Math.round((endOfDay-cursor)/60000);
+    if(mins>=25)freeBlocks.push({start:new Date(cursor),end:endOfDay,mins});
+  }
+  if(!freeBlocks.length)return;
+  const hdr=document.createElement('div');
+  hdr.style.cssText='font-family:var(--mono);font-size:.58rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin:10px 0 5px';
+  hdr.textContent='Free blocks';cont.appendChild(hdr);
+  freeBlocks.slice(0,3).forEach(b=>{
+    const label=`${b.start.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} · ${b.mins>=60?Math.floor(b.mins/60)+'h '+(b.mins%60?b.mins%60+'m':''):b.mins+'m'} free`;
+    const div=document.createElement('div');div.className='cal-free-slot';
+    div.textContent='🟢 '+label+' — tap to block for focus';
+    div.onclick=()=>scheduleCalFocusBlock(b);
+    cont.appendChild(div);
+  });
+}
+
+function scheduleCalFocusBlock(block){
+  const mins=Math.min(block.mins,50);
+  toast(`🎯 ${mins}m focus block — ${block.start.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`);
+}
+
+// ════════════════════════════════════════════════════════════════
+// VOICE CAPTURE
+// ════════════════════════════════════════════════════════════════
+let _recognition=null,_isRecording=false;
+
+function toggleVoiceCapture(){
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
+    toast('Voice input not supported in this browser — try Chrome');return;
+  }
+  if(_isRecording){stopVoice();return}
+  startVoice();
+}
+
+function startVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  _recognition=new SR();
+  _recognition.continuous=false;_recognition.interimResults=true;_recognition.lang='en-US';
+  const btn=$('voice-btn');if(btn)btn.classList.add('recording');
+  _isRecording=true;
+  _recognition.onresult=e=>{
+    const transcript=Array.from(e.results).map(r=>r[0].transcript).join('');
+    const qi=$('quick-input');if(qi)qi.value=transcript;
+  };
+  _recognition.onend=()=>{
+    stopVoice();
+    // auto-parse if we got something
+    const qi=$('quick-input');
+    if(qi?.value.trim())quickCapture();
+  };
+  _recognition.onerror=e=>{stopVoice();toast('Voice error: '+e.error)};
+  _recognition.start();
+  toast('🎙 Listening…');
+}
+
+function stopVoice(){
+  _isRecording=false;
+  const btn=$('voice-btn');if(btn)btn.classList.remove('recording');
+  try{_recognition?.stop()}catch(e){}
+}
+
+// ════════════════════════════════════════════════════════════════
+// SOURCE BADGES + SMART FETCH
+// ════════════════════════════════════════════════════════════════
+function updateSourceBadges(){
+  const sb=$('slack-badge');const gb=$('gmail-badge');const db=$('discord-badge');
+  if(sb){
+    if(S.settings.slackToken){sb.textContent='connected';sb.className='mcp-badge connected'}
+    else{sb.textContent='not set up';sb.className='mcp-badge disconnected'}
+  }
+  if(gb){
+    if(S.settings.gmailToken||_calToken){gb.textContent='connected';gb.className='mcp-badge connected'}
+    else{gb.textContent='not set up';gb.className='mcp-badge disconnected'}
+  }
+  if(db){
+    if(S.settings.discordToken){db.textContent='connected';db.className='mcp-badge connected'}
+    else{db.textContent='not set up';db.className='mcp-badge disconnected'}
+  }
+}
+
+async function triggerSourceFetch(source,btn){
+  btn.style.opacity='.5';
+  const status=$('msg-fetch-status');
+  try{
+    if(source==='slack'){
+      if(!S.settings.slackToken){toast('Set up Slack token in Platform Setup below');btn.style.opacity='';return}
+      if(status)status.textContent='Fetching Slack…';
+      await fetchSlackMessages();
+    }else if(source==='gmail'){
+      if(!S.settings.gmailToken&&!_calToken){connectGmail();btn.style.opacity='';return}
+      if(status)status.textContent='Fetching Gmail…';
+      await fetchGmailMessages();
+    }else if(source==='discord'){
+      if(!S.settings.discordToken){toast('Set up Discord token in Platform Setup below');btn.style.opacity='';return}
+      if(status)status.textContent='Fetching Discord…';
+      await fetchDiscordMessages();
+    }
+  }finally{btn.style.opacity='';if(status)setTimeout(()=>status.textContent='',3000)}
 }
 
 // ════════════════════════════════════════════════════════════════
