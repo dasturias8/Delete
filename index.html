@@ -74,7 +74,7 @@ async function loadFromCloud(uid){
       if(d.categories)S.categories=d.categories;
       if(d.distractions)S.distractions=d.distractions;
       if(d.settings){S.settings.name=d.settings.name||S.settings.name;S.settings.roles=d.settings.roles||S.settings.roles;S.settings.briefTime=d.settings.briefTime||S.settings.briefTime;}
-      window.save?.(); // mirror to localStorage as backup
+      save(); // mirror to localStorage as backup
       renderTasks();renderHabits();renderGoals();renderMorning();renderCatFilters();populateGoalSelects();loadSettings();
       toast('✓ Data loaded from your account');
     }
@@ -100,14 +100,13 @@ function updateAuthUI(user){
   }
 }
 
-// ── Cloud-save hook: main script's save() calls window._cloudSave() ──
-// This avoids the closure problem where window.save override doesn't affect
-// the main script's internal save() calls.
+// Cloud save hook — main save() calls window._cloudSave() if defined
 let _cloudSaveTimer=null;
 window._cloudSave=function(){
-  if(!auth.currentUser)return;
-  clearTimeout(_cloudSaveTimer);
-  _cloudSaveTimer=setTimeout(()=>window.fbSaveNow(),1500);
+  if(auth.currentUser){
+    clearTimeout(_cloudSaveTimer);
+    _cloudSaveTimer=setTimeout(()=>window.fbSaveNow(),1500);
+  }
 };
 
 onAuthStateChanged(auth,async(user)=>{
@@ -127,7 +126,7 @@ onAuthStateChanged(auth,async(user)=>{
         if(d.habits)S.habits=d.habits;
         if(d.habitLogs)S.habitLogs=d.habitLogs;
         if(d.categories)S.categories=d.categories;
-        window.save?.();
+        save();
         renderTasks();renderHabits();renderGoals();renderMorning();
       }
     });
@@ -463,58 +462,7 @@ input[type=datetime-local],input[type=date],input[type=time]{color-scheme:dark;f
 .pomo-controls{display:flex;gap:12px;justify-content:center;margin-top:20px}
 .distraction-item{display:flex;gap:10px;align-items:center;padding:10px 12px;background:var(--s2);border-radius:var(--r-sm);margin-bottom:6px;font-size:.86rem;animation:fadeUp .18s ease}
 
-/* ── BREATHING OVERLAY ──────────────────────────────────────────────────── */
-.breath-overlay{position:fixed;inset:0;background:rgba(247,245,240,.97);z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.breath-overlay.open{display:flex}
-.breath-circle{width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,var(--amber-dim),transparent);border:2px solid var(--amber);display:flex;align-items:center;justify-content:center;transition:transform 0s,box-shadow 0s;position:relative}
-.breath-circle.inhale{animation:breatheIn 4s ease-in-out forwards}
-.breath-circle.hold{animation:breatheHold 4s ease-in-out forwards}
-.breath-circle.exhale{animation:breatheOut 4s ease-in-out forwards}
-@keyframes breatheIn{0%{transform:scale(.6);box-shadow:0 0 0 0 var(--amber-dim)}100%{transform:scale(1.2);box-shadow:0 0 40px 10px var(--amber-dim)}}
-@keyframes breatheHold{0%,100%{transform:scale(1.2);box-shadow:0 0 40px 10px var(--amber-dim)}}
-@keyframes breatheOut{0%{transform:scale(1.2);box-shadow:0 0 40px 10px var(--amber-dim)}100%{transform:scale(.6);box-shadow:0 0 0 0 var(--amber-dim)}}
-.breath-label{font-family:'Fraunces',serif;font-size:1.4rem;color:var(--text);margin-top:28px;font-weight:600;letter-spacing:.04em}
-.breath-sub{font-family:'JetBrains Mono',monospace;font-size:.64rem;color:var(--text3);margin-top:8px;text-transform:uppercase;letter-spacing:.14em}
-.breath-dots{display:flex;gap:8px;margin-top:28px}
-.breath-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .3s}
-.breath-dot.active{background:var(--amber)}
-.breath-skip{margin-top:32px;font-size:.76rem;color:var(--text3);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-
-/* ── FOCUS LOCK MODE ────────────────────────────────────────────────────── */
-body.focus-active #bottom-nav .nav-btn:not(.active){opacity:.3;pointer-events:none}
-body.focus-active #bottom-nav::after{content:'🔒 FOCUS';position:absolute;bottom:8px;left:0;right:0;text-align:center;font-family:'JetBrains Mono',monospace;font-size:.48rem;color:var(--amber);letter-spacing:.12em;text-transform:uppercase}
-.focus-lock-banner{background:var(--amber-dim);border:1px solid var(--amber);border-radius:var(--r-sm);padding:8px 14px;font-size:.76rem;color:var(--amber);text-align:center;margin-bottom:14px;display:none;font-family:'JetBrains Mono',monospace;letter-spacing:.04em}
-body.focus-active .focus-lock-banner{display:block}
-
-/* ── ENERGY LEVEL ───────────────────────────────────────────────────────── */
-.energy-row{display:flex;gap:6px;justify-content:center;margin-top:8px}
-.energy-btn{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:transparent;cursor:pointer;font-size:1rem;transition:all .18s;display:flex;align-items:center;justify-content:center}
-.energy-btn.picked{border-color:var(--amber);background:var(--amber-dim);transform:scale(1.18)}
-
-/* ── POST-SESSION REFLECTION ────────────────────────────────────────────── */
-.reflect-modal{background:var(--s1);border-radius:var(--r) var(--r) 0 0;padding:28px 24px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto}
-.reflect-modal textarea{font-size:15px;min-height:80px}
-
-/* ── CALENDAR EVENTS ────────────────────────────────────────────────────── */
-.cal-event{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);background:var(--s2);border-left:3px solid var(--blue);margin-bottom:6px;font-size:.8rem}
-.cal-event.busy{border-left-color:var(--coral)}
-.cal-event .cal-time{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--text3);white-space:nowrap}
-.cal-event .cal-title{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cal-free-slot{padding:7px 10px;border-radius:var(--r-sm);background:var(--sage-dim);border:1px dashed var(--sage);font-size:.76rem;color:var(--sage);margin-bottom:6px;cursor:pointer;transition:background .18s}
-.cal-free-slot:hover{background:var(--teal-dim)}
-
-/* ── VOICE CAPTURE ──────────────────────────────────────────────────────── */
-.mic-btn{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--border);background:var(--s2);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0}
-.mic-btn:hover{border-color:var(--amber);background:var(--amber-dim)}
-.mic-btn.recording{border-color:var(--coral);background:var(--coral-dim);animation:micPulse .7s ease-in-out infinite}
-@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 var(--coral-dim)}50%{box-shadow:0 0 0 8px transparent}}
-
-/* ── MCP MESSAGES ───────────────────────────────────────────────────────── */
-.mcp-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:.58rem;font-family:'JetBrains Mono',monospace;font-weight:600}
-.mcp-badge.connected{background:var(--sage-dim);color:var(--sage)}
-.mcp-badge.disconnected{background:var(--s3);color:var(--text3)}
-.source-btn{flex:1;padding:10px 8px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--s2);cursor:pointer;font-size:.76rem;font-family:'Outfit',sans-serif;font-weight:600;color:var(--text2);text-align:center;transition:all .18s;min-height:48px}
-.source-btn:hover,.source-btn.active{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+/* ── MESSAGES ────────────────────────────────────────────────────────────── */
 .msg-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;animation:fadeUp .2s ease}
 .msg-card.needs-reply{border-left:3px solid var(--coral)}
 .msg-card.replied{opacity:.45}
@@ -640,6 +588,40 @@ body.focus-active .focus-lock-banner{display:block}
 /* ── TWO-COL INSIGHTS ────────────────────────────────────────────────────── */
 .two-col-ins{display:grid;grid-template-columns:1fr;gap:14px}
 @media(min-width:700px){.two-col-ins{grid-template-columns:1fr 1fr}}
+
+/* ── WORKLOAD METER ──────────────────────────────────────────── */
+.workload-bar-wrap{height:7px;background:var(--s3);border-radius:10px;overflow:hidden;margin:8px 0 4px}
+.workload-bar-fill{height:100%;border-radius:10px;transition:width .5s ease}
+.workload-ok{background:var(--sage)}
+.workload-warn{background:var(--amber)}
+.workload-over{background:var(--coral)}
+/* ── PLAN TODAY ──────────────────────────────────────────────── */
+.plan-task-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:6px;cursor:pointer;transition:all .15s}
+.plan-task-row:hover,.plan-task-row.selected{border-color:var(--amber);background:var(--amber-glow)}
+.plan-task-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--amber);cursor:pointer;flex-shrink:0}
+.plan-task-title{flex:1;font-size:.88rem;font-weight:500;line-height:1.3}
+.plan-time-badge{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--text3);background:var(--s3);padding:2px 6px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.plan-cap-label{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--text2);margin-bottom:5px}
+.plan-total-row{font-family:'JetBrains Mono',monospace;font-size:.75rem;padding:8px 10px;border-radius:var(--r-sm);margin:10px 0;text-align:center;font-weight:600}
+.plan-total-ok{background:var(--sage-dim);color:var(--sage)}
+.plan-total-warn{background:var(--amber-dim);color:var(--amber)}
+.plan-total-over{background:var(--coral-dim);color:var(--coral)}
+/* ── SHUTDOWN ────────────────────────────────────────────────── */
+.shutdown-stat{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border-radius:var(--r-sm);margin-bottom:8px;font-size:.86rem}
+.shutdown-stat-icon{font-size:1.4rem;flex-shrink:0}
+.energy-row{display:flex;gap:6px;margin-top:8px}
+.energy-btn{flex:1;padding:9px 4px;border:1px solid var(--border);background:var(--s2);border-radius:var(--r-sm);cursor:pointer;font-size:.82rem;text-align:center;transition:all .18s;min-height:42px;font-family:'Outfit',sans-serif}
+.energy-btn.picked{border-color:var(--amber);background:var(--amber-dim)}
+/* ── ENERGY SUGGESTIONS ──────────────────────────────────────── */
+.energy-suggest{margin-top:10px;padding:10px 12px;background:var(--violet-dim);border:1px solid rgba(91,127,166,.25);border-radius:var(--r-sm)}
+.energy-suggest-lbl{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--violet);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.suggest-task-btn{display:block;width:100%;text-align:left;padding:7px 10px;background:var(--s1);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.82rem;margin-bottom:5px;transition:all .15s;color:var(--text);font-family:'Outfit',sans-serif}
+.suggest-task-btn:hover{border-color:var(--violet);color:var(--violet)}
+/* ── COMMITTED PILL ──────────────────────────────────────────── */
+.pill-committed{background:rgba(74,124,89,.15);color:var(--sage);border:1px solid rgba(74,124,89,.35)}
+/* ── MORNING PLAN STATUS ─────────────────────────────────────── */
+.plan-status-bar{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding:7px 12px;background:rgba(74,124,89,.08);border-radius:var(--r-sm);flex-wrap:wrap;gap:8px}
+.plan-status-txt{font-size:.79rem;color:var(--sage)}
 </style>
 </head>
 <body>
@@ -684,6 +666,7 @@ body.focus-active .focus-lock-banner{display:block}
 <!-- ════════════ TASKS ════════════ -->
 <div class="page active" id="page-tasks">
   <div id="morning-section"></div>
+  <div id="workload-meter" style="margin-bottom:14px;display:none"></div>
   <div class="stats-row">
     <div class="stat-card"><div class="stat-num coral" id="st-ov">0</div><div class="stat-lbl">Overdue</div></div>
     <div class="stat-card"><div class="stat-num amber" id="st-td">0</div><div class="stat-lbl">Today</div></div>
@@ -719,6 +702,19 @@ body.focus-active .focus-lock-banner{display:block}
           </div>
         </div>
         <div class="fg"><label>Notes</label><textarea id="t-note" placeholder="Extra details…" style="min-height:48px"></textarea></div>
+        <div class="fg"><label>⏱ Estimated time</label>
+          <select id="t-est">
+            <option value="">— Unknown —</option>
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="45">45 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="90">1.5 hours</option>
+            <option value="120">2 hours</option>
+            <option value="180">3 hours</option>
+            <option value="240">4+ hours</option>
+          </select>
+        </div>
         <div class="fg"><label>Remind me</label>
           <select id="t-remind">
             <option value="0">No reminder</option>
@@ -771,7 +767,6 @@ body.focus-active .focus-lock-banner{display:block}
     <div class="section-label">💡 Quick Idea</div>
     <div style="display:flex;gap:8px">
       <input id="quick-input" placeholder="e.g. reply to Dr. Chen about collaboration, set up experiment this week" onkeydown="if(event.key==='Enter')quickCapture()" style="flex:1"/>
-      <button class="mic-btn" id="voice-btn" onclick="toggleVoiceCapture()" title="Voice input">🎙</button>
       <button class="btn btn-ai" onclick="quickCapture()" id="quick-btn">🤖 Parse</button>
     </div>
     <p style="font-size:.74rem;color:var(--text3);margin-top:6px">AI assigns project, due date, and creates an implementation intention from your goals.</p>
@@ -855,7 +850,6 @@ body.focus-active .focus-lock-banner{display:block}
 
 <!-- ════════════ FOCUS ════════════ -->
 <div class="page" id="page-focus" style="overflow-x:hidden">
-  <div class="focus-lock-banner" id="focus-lock-banner">🔒 Focus session in progress — stay in the zone!</div>
   <div class="two-col" style="overflow-x:hidden">
     <div>
       <div class="card" style="text-align:center;padding:24px 20px">
@@ -880,8 +874,8 @@ body.focus-active .focus-lock-banner{display:block}
         </div>
       </div>
       <div class="card" id="affect-section" style="display:none">
-        <div class="section-label">💬 How are you feeling?</div>
-        <p style="font-size:.8rem;color:var(--text2);margin-bottom:6px">Name your emotion before starting — it reduces task aversion.<br><span style="font-size:.72rem;color:var(--text3)">(Affect labeling activates prefrontal cortex, calms amygdala)</span></p>
+        <div class="section-label">💬 Affect Check-in</div>
+        <p style="font-size:.8rem;color:var(--text2);margin-bottom:6px">How do you feel about starting this session?<br><span style="font-size:.72rem;color:var(--text3)">(Research: naming your emotion reduces task aversion)</span></p>
         <div class="affect-row">
           <button class="affect-btn" onclick="pickAffect('Anxious 😟',this)">Anxious 😟</button>
           <button class="affect-btn" onclick="pickAffect('Bored 😑',this)">Bored 😑</button>
@@ -891,18 +885,8 @@ body.focus-active .focus-lock-banner{display:block}
           <button class="affect-btn" onclick="pickAffect('Focused 🎯',this)">Focused 🎯</button>
         </div>
         <div id="affect-reframe" style="margin-top:10px;display:none" class="coach-bubble"></div>
-        <!-- Energy level before session -->
-        <div style="margin-top:12px;display:none" id="energy-section">
-          <p style="font-size:.76rem;color:var(--text2);margin-bottom:6px">Energy level right now?</p>
-          <div class="energy-row" id="energy-row">
-            <button class="energy-btn" data-e="1" onclick="pickEnergy(1,this)" title="Exhausted">😴</button>
-            <button class="energy-btn" data-e="2" onclick="pickEnergy(2,this)" title="Low">😑</button>
-            <button class="energy-btn" data-e="3" onclick="pickEnergy(3,this)" title="OK">🙂</button>
-            <button class="energy-btn" data-e="4" onclick="pickEnergy(4,this)" title="Good">😊</button>
-            <button class="energy-btn" data-e="5" onclick="pickEnergy(5,this)" title="Energised">🔥</button>
-          </div>
-        </div>
-        <button class="btn btn-primary btn-full" onclick="beginBreathing()" id="start-focus-btn" style="margin-top:12px" disabled>🌬 Breathe &amp; Start</button>
+        <div id="energy-suggestions" style="display:none" class="energy-suggest"></div>
+        <button class="btn btn-primary btn-full" onclick="startFocusSession()" id="start-focus-btn" style="margin-top:10px" disabled>Start Session</button>
       </div>
       <div class="card">
         <div class="section-label">🎯 Focus On</div>
@@ -912,16 +896,6 @@ body.focus-active .focus-lock-banner{display:block}
       </div>
     </div>
     <div>
-      <div class="card" id="cal-card">
-        <div class="section-label" style="justify-content:space-between">
-          <span>📅 Today's Calendar</span>
-          <button class="btn btn-ghost btn-sm" onclick="fetchCalendarEvents()" id="cal-fetch-btn" style="font-size:.68rem;padding:4px 8px;min-height:28px">Sync</button>
-        </div>
-        <div id="cal-events" style="font-size:.78rem;color:var(--text3)">
-          <p>Connect Google Calendar to see your schedule and free blocks.<br>
-          <button class="btn btn-teal btn-sm" style="margin-top:8px" onclick="connectGoogleCal()">🗓 Connect Google Calendar</button></p>
-        </div>
-      </div>
       <div class="card">
         <div class="section-label">🧹 Distraction Parking Lot</div>
         <p style="font-size:.74rem;color:var(--text3);margin-bottom:10px">Thoughts that pop up during focus? Park them here — don't derail.</p>
@@ -947,31 +921,41 @@ body.focus-active .focus-lock-banner{display:block}
 <div class="page" id="page-messages">
   <div class="two-col">
     <div>
-      <!-- AI Triage Panel -->
+      <!-- Slack -->
       <div class="card" style="margin-bottom:14px">
-        <div class="section-label">🤖 AI Inbox Triage</div>
-        <p style="font-size:.78rem;color:var(--text2);margin-bottom:12px;line-height:1.55">Fetch messages from your connected platforms or paste them. AI extracts tasks and flags what needs a reply.</p>
-        <!-- Source buttons -->
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-          <button class="source-btn" id="src-slack" onclick="triggerSourceFetch('slack',this)" title="Fetch from Slack">
-            <div style="font-size:1.1rem">💜</div><div style="margin-top:2px">Slack</div>
-            <div class="mcp-badge disconnected" id="slack-badge" style="margin:4px auto 0">not set up</div>
-          </button>
-          <button class="source-btn" id="src-gmail" onclick="triggerSourceFetch('gmail',this)" title="Fetch from Gmail">
-            <div style="font-size:1.1rem">📧</div><div style="margin-top:2px">Gmail</div>
-            <div class="mcp-badge disconnected" id="gmail-badge" style="margin:4px auto 0">not set up</div>
-          </button>
-          <button class="source-btn" id="src-discord" onclick="triggerSourceFetch('discord',this)" title="Fetch from Discord">
-            <div style="font-size:1.1rem">🎮</div><div style="margin-top:2px">Discord</div>
-            <div class="mcp-badge disconnected" id="discord-badge" style="margin:4px auto 0">not set up</div>
-          </button>
+        <div class="section-label">💜 Connect Slack</div>
+        <div class="fg"><label>Slack Bot/User Token</label><input id="slack-token" type="password" placeholder="xoxb-… or xoxp-…" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
+        <button class="btn btn-full" style="background:#4a154b;color:#fff;margin-bottom:8px" onclick="saveSlackToken()">Save &amp; Fetch Slack</button>
+        <div id="slack-status" style="font-size:.72rem;color:var(--text3);line-height:1.5">
+          Get a token at <a href="https://api.slack.com/apps" target="_blank" style="color:var(--teal)">api.slack.com/apps</a> → Create App → OAuth &amp; Permissions → Bot Token Scopes: <code style="font-size:.68rem">channels:history, channels:read, users:read</code> → Install to workspace.
         </div>
-        <button class="btn btn-teal btn-full btn-sm" onclick="refreshAllMessages()">🔄 Refresh All Connected</button>
+        <div id="slack-channels" style="margin-top:10px;display:none">
+          <label style="font-size:.78rem;color:var(--text2);font-weight:500">Channels to monitor</label>
+          <div id="slack-channel-list" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px"></div>
+          <button class="btn btn-teal btn-sm btn-full" style="margin-top:10px" onclick="fetchSlackMessages()">🔄 Fetch New Messages</button>
+        </div>
       </div>
-
+      <!-- Discord -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="section-label">🎮 Connect Discord</div>
+        <div class="fg"><label>Discord Bot Token</label><input id="discord-token" type="password" placeholder="Your bot token" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
+        <div class="fg"><label>Channel ID(s) to monitor <span style="color:var(--text3)">(comma-separated)</span></label><input id="discord-channels-input" placeholder="1234567890, 9876543210"/></div>
+        <button class="btn btn-full" style="background:#5865F2;color:#fff;margin-bottom:8px" onclick="saveDiscordToken()">Save &amp; Fetch Discord</button>
+        <div style="font-size:.72rem;color:var(--text3);line-height:1.5">
+          <a href="https://discord.com/developers/applications" target="_blank" style="color:var(--teal)">discord.com/developers</a> → New Application → Bot → Reset Token. Enable: Message Content Intent. Add bot to server with <code style="font-size:.68rem">Read Message History</code> permission.
+        </div>
+      </div>
+      <!-- Gmail -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="section-label">📧 Connect Gmail</div>
+        <div class="fg"><label>Gmail OAuth Client ID</label><input id="gmail-client-id" placeholder="your-id.apps.googleusercontent.com" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
+        <button class="btn btn-teal btn-full" onclick="connectGmail()" id="gmail-btn">Connect Gmail</button>
+        <p style="font-size:.7rem;color:var(--text3);margin-top:8px;line-height:1.5">Get a free Client ID at <a href="https://console.cloud.google.com" target="_blank" style="color:var(--teal)">console.cloud.google.com</a> → APIs → Gmail API → OAuth (Web app). Set redirect URI to this page's URL.</p>
+        <div id="gmail-status" style="margin-top:8px;font-size:.72rem;color:var(--sage);display:none">✓ Gmail connected</div>
+      </div>
       <!-- Paste fallback -->
       <div class="card" style="margin-bottom:14px">
-        <div class="section-label">📋 Paste &amp; Analyze</div>
+        <div class="section-label">📋 Paste Messages</div>
         <div class="fg"><label>Platform</label>
           <select id="msg-platform">
             <option value="discord">Discord</option>
@@ -981,43 +965,10 @@ body.focus-active .focus-lock-banner{display:block}
         </div>
         <div class="fg"><label>Your name/handle</label><input id="msg-username" placeholder="@daniella"/></div>
         <div class="fg"><label>Paste messages</label>
-          <textarea id="msg-paste" style="min-height:100px;font-family:'JetBrains Mono',monospace;font-size:.75rem" placeholder="[10:34 AM] mak: @daniella can you review the PR by Friday?&#10;[10:35 AM] kirti: Let's sync on Ajna pitch deck before Thursday"></textarea>
+          <textarea id="msg-paste" style="min-height:100px;font-family:'JetBrains Mono',monospace;font-size:.75rem" placeholder="[10:34 AM] john: @daniella can you review the PR by Friday?"></textarea>
         </div>
-        <button class="btn btn-ai btn-full" onclick="parseMessages()" id="msg-parse-btn">🤖 Extract Tasks &amp; Replies</button>
+        <button class="btn btn-ai btn-full" onclick="parseMessages()" id="msg-parse-btn">🤖 Extract Tasks &amp; Reminders</button>
       </div>
-
-      <!-- Connection Setup (collapsed by default) -->
-      <details class="card" style="margin-bottom:14px">
-        <summary style="cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.15em;padding:2px 0">⚙ Platform Setup</summary>
-        <div style="margin-top:14px">
-          <!-- Slack -->
-          <div style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px">
-            <div style="font-weight:600;font-size:.84rem;margin-bottom:8px">💜 Slack</div>
-            <div class="fg"><label>Bot/User Token (xoxb-… or xoxp-…)</label><input id="slack-token" type="password" placeholder="xoxb-…" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
-            <button class="btn btn-full btn-sm" style="background:#4a154b;color:#fff" onclick="saveSlackToken()">Save &amp; Connect Slack</button>
-            <div id="slack-channels" style="margin-top:10px;display:none">
-              <label style="font-size:.78rem;color:var(--text2);font-weight:500;display:block;margin-bottom:6px">Monitor channels:</label>
-              <div id="slack-channel-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
-            </div>
-          </div>
-          <!-- Discord -->
-          <div style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px">
-            <div style="font-weight:600;font-size:.84rem;margin-bottom:8px">🎮 Discord</div>
-            <div class="fg"><label>Bot Token</label><input id="discord-token" type="password" placeholder="Your bot token" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
-            <div class="fg"><label>Channel IDs (comma-separated)</label><input id="discord-channels-input" placeholder="1234567890, 9876543210"/></div>
-            <button class="btn btn-full btn-sm" style="background:#5865F2;color:#fff" onclick="saveDiscordToken()">Save &amp; Connect Discord</button>
-          </div>
-          <!-- Gmail -->
-          <div>
-            <div style="font-weight:600;font-size:.84rem;margin-bottom:8px">📧 Gmail</div>
-            <div class="fg"><label>OAuth Client ID</label><input id="gmail-client-id" placeholder="your-id.apps.googleusercontent.com" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"/></div>
-            <button class="btn btn-teal btn-full btn-sm" onclick="connectGmail()" id="gmail-btn">Connect Gmail + Calendar</button>
-            <p style="font-size:.7rem;color:var(--text3);margin-top:6px;line-height:1.5">From <a href="https://console.cloud.google.com" target="_blank" style="color:var(--teal)">console.cloud.google.com</a> → Enable Gmail + Calendar APIs → OAuth credentials → Web app. Add this page's URL as redirect URI.</p>
-            <div id="gmail-status" style="margin-top:6px;font-size:.72rem;color:var(--sage);display:none">✓ Gmail connected</div>
-          </div>
-        </div>
-      </details>
-
       <!-- Reply settings -->
       <div class="card">
         <div class="section-label">⏰ Reply Reminders</div>
@@ -1030,7 +981,7 @@ body.focus-active .focus-lock-banner{display:block}
     <div>
       <div class="sec-hdr">
         <h2>Message Inbox</h2>
-        <div id="msg-fetch-status" style="font-size:.7rem;color:var(--text3);font-family:'JetBrains Mono',monospace"></div>
+        <button class="btn btn-teal btn-sm" onclick="refreshAllMessages()">🔄 Refresh All</button>
       </div>
       <div class="chips" style="margin-bottom:14px">
         <button class="chip active" onclick="setMsgF('all',this)">All</button>
@@ -1180,50 +1131,6 @@ body.focus-active .focus-lock-banner{display:block}
 </div><!-- /content -->
 </div><!-- /app -->
 
-<!-- ── BREATHING OVERLAY ─────────────────────────────────────────────────── -->
-<div class="breath-overlay" id="breath-overlay">
-  <div style="text-align:center">
-    <div style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.14em;margin-bottom:24px">Box breathing · 3 cycles</div>
-    <div class="breath-circle" id="breath-circle">
-      <span style="font-size:2rem" id="breath-count">4</span>
-    </div>
-    <div class="breath-label" id="breath-label">Breathe in</div>
-    <div class="breath-sub" id="breath-sub">Inhale slowly through your nose</div>
-    <div class="breath-dots" id="breath-dots">
-      <div class="breath-dot" id="bdot-0"></div>
-      <div class="breath-dot" id="bdot-1"></div>
-      <div class="breath-dot" id="bdot-2"></div>
-    </div>
-    <div class="breath-skip" onclick="skipBreathing()">Skip and start now</div>
-  </div>
-</div>
-
-<!-- ── POST-SESSION REFLECTION ───────────────────────────────────────────── -->
-<div class="modal-overlay" id="reflect-modal">
-  <div class="reflect-modal">
-    <div class="modal-title" style="font-size:1.05rem">🎉 Session complete!</div>
-    <p style="font-size:.82rem;color:var(--text2);margin-bottom:14px;line-height:1.6">Reflection helps your brain consolidate the work and improves future planning.</p>
-    <div class="fg">
-      <label>What did you accomplish this session?</label>
-      <textarea id="reflect-accomplished" placeholder="e.g. Finished the methods section intro, reviewed three papers…"></textarea>
-    </div>
-    <div class="fg" style="margin-bottom:8px">
-      <label>Energy level after session</label>
-      <div class="energy-row" id="reflect-energy-row">
-        <button class="energy-btn" data-e="1" onclick="pickReflectEnergy(1,this)" title="Exhausted">😴</button>
-        <button class="energy-btn" data-e="2" onclick="pickReflectEnergy(2,this)" title="Low">😑</button>
-        <button class="energy-btn" data-e="3" onclick="pickReflectEnergy(3,this)" title="OK">🙂</button>
-        <button class="energy-btn" data-e="4" onclick="pickReflectEnergy(4,this)" title="Good">😊</button>
-        <button class="energy-btn" data-e="5" onclick="pickReflectEnergy(5,this)" title="Energised">🔥</button>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('reflect-modal')">Skip</button>
-      <button class="btn btn-primary btn-sm" onclick="saveReflection()">Save ✓</button>
-    </div>
-  </div>
-</div>
-
 <!-- ── COACH MODAL ───────────────────────────────────────────────────────── -->
 <div class="modal-overlay" id="coach-modal">
   <div class="modal">
@@ -1253,6 +1160,19 @@ body.focus-active .focus-lock-banner{display:block}
         <button class="pri-btn" data-ep="high" onclick="setEditPri('high')">High</button>
       </div>
     </div>
+    <div class="fg"><label>⏱ Estimated time</label>
+      <select id="edit-est">
+        <option value="">— Unknown —</option>
+        <option value="15">15 min</option>
+        <option value="30">30 min</option>
+        <option value="45">45 min</option>
+        <option value="60">1 hour</option>
+        <option value="90">1.5 hours</option>
+        <option value="120">2 hours</option>
+        <option value="180">3 hours</option>
+        <option value="240">4+ hours</option>
+      </select>
+    </div>
     <div class="fg"><label>Notes (links, details…)</label><textarea id="edit-note" style="min-height:80px"></textarea></div>
     <div class="fg"><label>Implementation intention</label><input id="edit-impl" placeholder="When [situation], I will [action]…"/></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
@@ -1262,6 +1182,28 @@ body.focus-active .focus-lock-banner{display:block}
   </div>
 </div>
 
+<!-- ── PLAN TODAY MODAL ─────────────────────────────────────────── -->
+<div class="modal-overlay" id="plan-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">📋 Plan Today</div>
+    <div id="plan-modal-body"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeModal('plan-modal')">Skip</button>
+      <button class="btn btn-primary" onclick="confirmPlanToday()">Commit to Plan →</button>
+    </div>
+  </div>
+</div>
+<!-- ── SHUTDOWN RITUAL MODAL ─────────────────────────────────── -->
+<div class="modal-overlay" id="shutdown-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">🌙 End of Day</div>
+    <div id="shutdown-modal-body"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeModal('shutdown-modal')">Not now</button>
+      <button class="btn btn-primary" onclick="confirmShutdown()">✓ Close Day</button>
+    </div>
+  </div>
+</div>
 <div id="toast"></div>
 
 <script>
@@ -1269,7 +1211,7 @@ body.focus-active .focus-lock-banner{display:block}
 // STATE
 // ════════════════════════════════════════════════════════════════
 let S = {
-  tasks:[],goals:[],habits:[],habitLogs:{},messages:[],
+  tasks:[],goals:[],habits:[],habitLogs:{},messages:[],shutdownLogs:[],
   distractions:[],focusSessions:[],
   categories:[
     {id:'research',name:'Research',emoji:'🔬'},
@@ -1284,7 +1226,7 @@ let S = {
     discordToken:'',discordChannelIds:'',
     syncId:''
   },
-  ui:{priority:'med',filterCat:'all',filterGoal:'all',sortMode:'due',msgFilter:'all',
+  ui:{priority:'med',filterCat:'all',filterGoal:'all',sortMode:'due',msgFilter:'all',todayPriority:'',
     capturedTasks:[],capturedHabits:[],
     pomoMode:'work',pomoRunning:false,pomoSecs:1500,pomoTotal:1500,pomoCount:0,pomoDayTotal:0,pomoInterval:null,
     affectPicked:'',currentTab:'tasks'}
@@ -1293,7 +1235,7 @@ const getCategories=()=>S.categories&&S.categories.length?S.categories:[{id:'res
 
 
 function load(){try{const d=localStorage.getItem('tf_v3');if(d){const p=JSON.parse(d);S={...S,...p,ui:{...S.ui,...(p.ui||{})}}}}catch(e){}}
-function save(){try{localStorage.setItem('tf_v3',JSON.stringify(S))}catch(e){}window._cloudSave?.()}
+function save(){try{localStorage.setItem('tf_v3',JSON.stringify(S))}catch(e){}if(window._cloudSave)window._cloudSave()}
 
 // ════════════════════════════════════════════════════════════════
 // UTILS
@@ -1321,10 +1263,10 @@ function go(tab){
   $('page-'+tab).classList.add('active');
   $('nb-'+tab).classList.add('active');
   S.ui.currentTab=tab;
-  if(tab==='tasks'){renderCatFilters();populateGoalSelects();renderTasks();renderMorning()}
+  if(tab==='tasks'){renderCatFilters();populateGoalSelects();renderTasks();renderMorning();renderWorkloadMeter()}
   if(tab==='habits'){renderHabits()}
   if(tab==='goals'){renderGoals()}
-  if(tab==='messages'){renderMessages();updateSourceBadges()}
+  if(tab==='messages'){renderMessages()}
   if(tab==='focus'){renderFocusStats();renderDistractions();renderScienceTip();populatePomoTaskSel()}
   if(tab==='insights'){renderInsights()}
   if(tab==='settings'){loadSettings()}
@@ -1390,9 +1332,10 @@ function addTask(){
     const title=$('t-title').value.trim();
     if(!title){toast('Enter a task title');return}
     const catEl=$('t-cat');const goalEl=$('t-goal');const projEl=$('t-project');
-    const dueEl=$('t-due');const noteEl=$('t-note');const remEl=$('t-remind');
+    const dueEl=$('t-due');const noteEl=$('t-note');const remEl=$('t-remind');const estEl=$('t-est');
     const task={
       id:Date.now()+Math.random(),
+      estimatedMins:estEl?parseInt(estEl.value)||0:0,
       title,
       cat:catEl?catEl.value:'personal',
       goalId:goalEl?goalEl.value||null:null,
@@ -1411,6 +1354,7 @@ function addTask(){
     if(projEl)projEl.value='';
     if(dueEl)dueEl.value='';
     if(goalEl)goalEl.value='';
+    if($('t-est'))$('t-est').value='';
     setPri('med');toast('✓ Task added');
   }catch(e){toast('Error adding task: '+e.message);console.error('addTask error:',e)}
 }
@@ -1444,8 +1388,7 @@ User: ${userCtx()}\nGoals:\n${goalsCtx()}`;
   btn.disabled=false;btn.innerHTML='🤖';
 }
 
-const haptic=(ms=50)=>{try{navigator.vibrate?.(ms)}catch(e){}};
-function toggleDone(id){const t=S.tasks.find(t=>t.id===id);if(t){t.done=!t.done;if(t.done)haptic([50,30,50]);save();renderTasks()}}
+function toggleDone(id){const t=S.tasks.find(t=>t.id===id);if(t){t.done=!t.done;save();renderTasks()}}
 function deleteTask(id){S.tasks=S.tasks.filter(t=>t.id!==id);save();renderTasks();toast('Removed')}
 
 // ── EDIT TASK ──────────────────────────────────────────────────────────────
@@ -1465,6 +1408,7 @@ function openEditTask(id){
   } else{$('edit-due').value=''}
   $('edit-note').value=t.note||'';
   $('edit-impl').value=t.implIntention||'';
+  if($('edit-est'))$('edit-est').value=t.estimatedMins||'';
   // set priority
   _editPri=t.priority||'med';
   document.querySelectorAll('[data-ep]').forEach(b=>{b.className='pri-btn';if(b.dataset.ep===_editPri)b.classList.add(_editPri==='low'?'pl':_editPri==='med'?'pm':'ph')});
@@ -1485,6 +1429,7 @@ function saveEditTask(){
   t.priority=_editPri;
   t.note=$('edit-note').value.trim();
   t.implIntention=$('edit-impl').value.trim();
+  t.estimatedMins=parseInt($('edit-est')?.value)||0;
   save();closeModal('edit-modal');renderTasks();toast('✓ Task updated');
 }
 
@@ -1675,6 +1620,7 @@ function renderTasks(){
   const tsOv=$('ts-overdue');if(tsOv){tsOv.textContent=ov+' overdue';tsOv.style.display=ov>0?'':'none'}
   $('ts-today').textContent=pend.filter(t=>t.due&&new Date(t.due)<=tod&&new Date(t.due)>=n).length+' today';
   const list=$('task-list');list.innerHTML='';
+  renderWorkloadMeter();
   if(!tasks.length){list.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>No tasks. Add one or use ⚡ Capture!</p></div>';return}
   if(S.ui.sortMode==='due'){
     const groups={};
@@ -1706,6 +1652,8 @@ function renderGroup(lbl,tasks,cont,n){
           ${goal?`<span class="pill pill-goal">🎯 ${esc(goal.title.substring(0,22))}</span>`:''}
           ${t.project?`<span class="pill pill-src">📁 ${esc(t.project)}</span>`:''}
           ${t.due?`<span class="pill ${isOv?'pill-overdue':'pill-time'}">📅 ${fmtDue(t.due)}</span>`:''}
+          ${t.estimatedMins?`<span class="pill" style="background:var(--violet-dim);color:var(--violet)">⏱ ${t.estimatedMins>=60?Math.floor(t.estimatedMins/60)+'h'+(t.estimatedMins%60?' '+t.estimatedMins%60+'m':''):t.estimatedMins+'m'}</span>`:''}
+          ${t.committedToday===todayKey()?'<span class="pill pill-committed">📌 Today</span>':''}
         </div>
         ${t.note?`<div class="task-note">${esc(t.note)}</div>`:''}
         ${t.implIntention?`<div class="task-impl">💡 ${esc(t.implIntention)}</div>`:''}
@@ -1863,7 +1811,7 @@ function addAllCaptured(){
   let nt=0,nh=0;
   (S.ui.capturedTasks||[]).forEach((t,i)=>{
     const ch=$(`cap-t-${i}`);if(!ch||!ch.checked)return;
-    S.tasks.push({id:Date.now()+Math.random(),title:t.title,cat:t.cat,goalId:t.goalId||null,project:t.project||'',due:t.dueISO||'',priority:t.priority,note:t.note||'',implIntention:t.implIntention||'',remind:30,done:false,source:'capture',created:Date.now()});
+    S.tasks.push({id:Date.now()+Math.random(),title:t.title,cat:t.cat,goalId:t.goalId||null,project:t.project||'',due:t.dueISO||'',priority:t.priority,note:t.note||'',implIntention:t.implIntention||'',estimatedMins:parseInt(t.estimatedMins)||0,remind:30,done:false,source:'capture',created:Date.now()});
     nt++;
   });
   (S.ui.capturedHabits||[]).forEach((h,i)=>{
@@ -1892,18 +1840,17 @@ function addHabit(){
 function toggleHabit(id){
   const key=todayKey();
   if(!S.habitLogs[key])S.habitLogs[key]={};
-  const nowDone=!S.habitLogs[key][id];
-  S.habitLogs[key][id]=nowDone;
-  if(nowDone)haptic([40,20,40,20,80]);
+  S.habitLogs[key][id]=!S.habitLogs[key][id];
   save();renderHabits();
 }
 
 function deleteHabit(id){S.habits=S.habits.filter(h=>h.id!==id);save();renderHabits();toast('Habit removed')}
 
+function localKey(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dy=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dy}`}
 function getHabitStreak(habitId){
   let streak=0,d=new Date();
   for(let i=0;i<90;i++){
-    const k=d.toISOString().slice(0,10);
+    const k=localKey(d);
     if(S.habitLogs[k]&&S.habitLogs[k][habitId])streak++;
     else if(i>0)break;
     d.setDate(d.getDate()-1);
@@ -1928,7 +1875,7 @@ function renderHabits(){
   S.habits.forEach(h=>{
     const isDone=!!log[h.id];const streak=getHabitStreak(h.id);
     // last 7 days dots
-    const dots=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);const dd=(S.habitLogs[k]||{})[h.id];dots.push(`<div class="hdot ${i===0?'today':''} ${dd?'done':i===0&&isDone?'done':!dd&&i<6?'missed':''}" title="${k}"></div>`)}
+    const dots=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=localKey(d);const dd=(S.habitLogs[k]||{})[h.id];dots.push(`<div class="hdot ${i===0?'today':''} ${dd?'done':i===0&&isDone?'done':!dd&&i<6?'missed':''}" title="${k}"></div>`)}
     const card=document.createElement('div');
     card.className=`habit-card${isDone?' hc-done':''}`;
     card.innerHTML=`
@@ -1981,132 +1928,57 @@ function togglePomo(){
 
 function startPomo(){
   S.ui.pomoRunning=true;$('pomo-btn').textContent='⏸ Pause';
-  document.body.classList.add('focus-active');
   S.ui.pomoInterval=setInterval(()=>{
     S.ui.pomoSecs--;updatePomoDisplay();
     if(S.ui.pomoSecs<=0){completePomo()}
   },1000);
 }
 
-function pausePomo(){S.ui.pomoRunning=false;$('pomo-btn').textContent='▶ Resume';clearInterval(S.ui.pomoInterval);document.body.classList.remove('focus-active')}
-function resetPomo(){pausePomo();S.ui.pomoSecs=S.ui.pomoTotal;S.ui.affectPicked='';S.ui.energyLevel=null;updatePomoDisplay();$('pomo-btn').textContent='▶ Start';document.querySelectorAll('.affect-btn').forEach(b=>b.classList.remove('picked'));document.querySelectorAll('#energy-row .energy-btn').forEach(b=>b.classList.remove('picked'));$('affect-reframe').style.display='none';$('start-focus-btn').disabled=true;$('start-focus-btn').textContent='🌬 Breathe & Start';document.body.classList.remove('focus-active')}
+function pausePomo(){S.ui.pomoRunning=false;$('pomo-btn').textContent='▶ Resume';clearInterval(S.ui.pomoInterval)}
+function resetPomo(){pausePomo();S.ui.pomoSecs=S.ui.pomoTotal;S.ui.affectPicked='';updatePomoDisplay();$('pomo-btn').textContent='▶ Start';document.querySelectorAll('.affect-btn').forEach(b=>b.classList.remove('picked'));$('affect-reframe').style.display='none';const _esSug=$('energy-suggestions');if(_esSug)_esSug.style.display='none';$('start-focus-btn').disabled=true}
 
 function completePomo(){
   clearInterval(S.ui.pomoInterval);S.ui.pomoRunning=false;
-  document.body.classList.remove('focus-active');
-  haptic([100,50,100,50,200]);
   if(S.ui.pomoMode==='work'||S.ui.pomoMode==='deep'){
     S.ui.pomoCount++;S.ui.pomoDayTotal++;
-    S.focusSessions.push({date:todayDateStr(),mode:S.ui.pomoMode,dur:S.ui.pomoTotal,task:$('pomo-task-sel').value||'',energyBefore:S.ui.energyLevel||null,completed:true});
+    S.focusSessions.push({date:todayKey(),mode:S.ui.pomoMode,dur:S.ui.pomoTotal,task:$('pomo-task-sel').value||'',completed:true});
     save();
-    // Show reflection modal
-    setTimeout(()=>{$('reflect-modal').classList.add('open')},400);
   }
   // ── Full UI reset so next session starts clean ──
   $('pomo-btn').textContent='▶ Start';
   S.ui.pomoSecs=S.ui.pomoTotal;
-  S.ui.affectPicked='';S.ui.energyLevel=null;
+  S.ui.affectPicked='';
+  // Clear affect check-in
   document.querySelectorAll('.affect-btn').forEach(b=>b.classList.remove('picked'));
-  document.querySelectorAll('#energy-row .energy-btn').forEach(b=>b.classList.remove('picked'));
   const reframe=$('affect-reframe');if(reframe){reframe.style.display='none';reframe.textContent=''}
-  const energySec=$('energy-section');if(energySec)energySec.style.display='none';
+  // Re-show affect section (required for next work session start)
   const affSec=$('affect-section');
   if(affSec){affSec.style.display=(S.ui.pomoMode==='work'||S.ui.pomoMode==='deep')?'block':'none'}
-  const startBtn=$('start-focus-btn');if(startBtn){startBtn.disabled=true;startBtn.textContent='🌬 Breathe & Start';}
+  // Disable start button until affect is re-picked
+  const startBtn=$('start-focus-btn');if(startBtn)startBtn.disabled=true;
+  // Clear distraction input (keep logged distractions — user may want to review)
   const di=$('distraction-input');if(di)di.value='';
+  // Reset task selector to blank
   const taskSel=$('pomo-task-sel');if(taskSel)taskSel.value='';
+  // Update counters
   $('pomo-count').textContent=S.ui.pomoCount;
   $('pomo-total').textContent=S.ui.pomoDayTotal;
   updatePomoDisplay();
   if(S.settings.notif&&Notification.permission==='granted')
-    new Notification('TaskFlow',{body:S.ui.pomoMode==='work'?'✓ Session done! 🎉':'Break over — ready to focus? 💪'});
-  if(S.ui.pomoMode!=='work'&&S.ui.pomoMode!=='deep')
-    toast('Break over. Pick your focus state to start.');
+    new Notification('TaskFlow',{body:S.ui.pomoMode==='work'?'✓ Pomodoro done! Time for a break 🎉':'Break over — ready to focus? 💪'});
+  toast(S.ui.pomoMode==='work'?'🎉 Session complete! How do you feel going into the break?':'Break over. Pick your focus state to start.');
   renderFocusStats();
 }
 
 function skipPomo(){resetPomo()}
 
-// ── ENERGY TRACKING ───────────────────────────────────────────────────────
-function pickEnergy(level,el){
-  S.ui.energyLevel=level;
-  document.querySelectorAll('#energy-row .energy-btn').forEach(b=>b.classList.remove('picked'));
-  el.classList.add('picked');
-}
-function pickReflectEnergy(level,el){
-  document.querySelectorAll('#reflect-energy-row .energy-btn').forEach(b=>b.classList.remove('picked'));
-  el.classList.add('picked');
-  el.dataset.selected='1';
-}
-function saveReflection(){
-  const accomplished=$('reflect-accomplished')?.value.trim();
-  const energyEl=document.querySelector('#reflect-energy-row .energy-btn[data-selected="1"]');
-  const energyAfter=energyEl?parseInt(energyEl.dataset.e):null;
-  if(S.focusSessions.length){
-    const last=S.focusSessions[S.focusSessions.length-1];
-    if(accomplished)last.reflection=accomplished;
-    if(energyAfter)last.energyAfter=energyAfter;
-  }
-  save();
-  $('reflect-accomplished').value='';
-  document.querySelectorAll('#reflect-energy-row .energy-btn').forEach(b=>{b.classList.remove('picked');delete b.dataset.selected});
-  closeModal('reflect-modal');
-  toast('✓ Reflection saved');
-}
-
-// ── BREATHING RITUAL ──────────────────────────────────────────────────────
-let _breathTimer=null,_breathCycle=0,_breathPhase=0;
-const BREATH_PHASES=[
-  {label:'Breathe in',sub:'Inhale slowly through your nose',cls:'inhale',secs:4},
-  {label:'Hold',sub:'Hold at the top',cls:'hold',secs:4},
-  {label:'Breathe out',sub:'Exhale slowly through your mouth',cls:'exhale',secs:4},
-  {label:'Hold',sub:'Hold at the bottom',cls:'hold',secs:4}
-];
-function beginBreathing(){
-  const overlay=$('breath-overlay');
-  overlay.classList.add('open');
-  _breathCycle=0;_breathPhase=0;
-  runBreathPhase();
-}
-function runBreathPhase(){
-  if(_breathCycle>=3){finishBreathing();return}
-  const phase=BREATH_PHASES[_breathPhase];
-  const circle=$('breath-circle');const lbl=$('breath-label');const sub=$('breath-sub');
-  const cnt=$('breath-count');
-  // update dots
-  [$('bdot-0'),$('bdot-1'),$('bdot-2')].forEach((d,i)=>{if(d)d.classList.toggle('active',i===_breathCycle)});
-  circle.className='breath-circle '+phase.cls;
-  lbl.textContent=phase.label;sub.textContent=phase.sub;
-  // countdown
-  let t=phase.secs;cnt.textContent=t;
-  clearInterval(_breathTimer);
-  _breathTimer=setInterval(()=>{
-    t--;cnt.textContent=Math.max(0,t);
-    if(t<=0){
-      clearInterval(_breathTimer);
-      _breathPhase++;
-      if(_breathPhase>=4){_breathPhase=0;_breathCycle++;}
-      runBreathPhase();
-    }
-  },1000);
-}
-function finishBreathing(){
-  clearInterval(_breathTimer);
-  $('breath-overlay').classList.remove('open');
-  startPomo();
-}
-function skipBreathing(){
-  clearInterval(_breathTimer);
-  $('breath-overlay').classList.remove('open');
-  startPomo();
-}
-
 function pickAffect(emotion,el){
   S.ui.affectPicked=emotion;
   document.querySelectorAll('.affect-btn').forEach(b=>b.classList.remove('picked'));
   el.classList.add('picked');
+  // Science-based reframe
   const reframes={
-    'Anxious 😟':'Named it! Research shows simply labeling anxiety reduces the amygdala response. Try: "I\'m choosing to feel this discomfort for 25 minutes — and that\'s okay."',
+    'Anxious 😟':'Named it! Research shows simply labeling anxiety as "anxiety" reduces the amygdala response. Try: "I\'m choosing to feel this discomfort for 25 minutes — and that\'s okay."',
     'Bored 😑':'Boredom often means a task feels below your skill level. Try: Make it a game — can you finish one more sub-task than last time?',
     'Overwhelmed 😤':'The task feels large. Break it: What\'s the ONE smallest action you could do right now? Just that.',
     'Distracted 🦋':'Your brain is seeking novelty dopamine. The parking lot below is for those thoughts. Just write them down and come back.',
@@ -2114,12 +1986,11 @@ function pickAffect(emotion,el){
     'Focused 🎯':'Perfect. Channel it. Protect this state — turn off notifications.'
   };
   const r=$('affect-reframe');r.style.display='block';r.textContent=reframes[emotion]||'Great. You\'ve got this.';
-  // Show energy picker
-  const energySec=$('energy-section');if(energySec)energySec.style.display='block';
   $('start-focus-btn').disabled=false;
+  suggestTasksForEnergy(emotion);
 }
 
-function startFocusSession(){beginBreathing()}
+function startFocusSession(){startPomo()}
 
 function parkDistraction(){
   const input=$('distraction-input');const val=input.value.trim();if(!val)return;
@@ -2349,7 +2220,7 @@ function renderInsights(){
   const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   for(let i=6;i>=0;i--){
     const d=new Date();d.setDate(d.getDate()-i);
-    const k=d.toISOString().slice(0,10);
+    const k=localKey(d);
     const cnt=S.tasks.filter(t=>t.done&&t.created&&new Date(t.created).toISOString().startsWith(k)).length;
     const maxH=80;const h=Math.max(4,Math.min(maxH,cnt*16));
     bars.innerHTML+=`<div class="wbar" style="height:${h}px" title="${cnt} tasks on ${k}"></div>`;
@@ -2358,7 +2229,7 @@ function renderInsights(){
   // Habit heatmap (30 days)
   const hm=$('habit-heatmap');hm.innerHTML='';
   for(let i=29;i>=0;i--){
-    const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);
+    const d=new Date();d.setDate(d.getDate()-i);const k=localKey(d);
     const log=S.habitLogs[k]||{};const cnt=Object.values(log).filter(Boolean).length;
     const pctH=S.habits.length?cnt/S.habits.length:0;
     const col=pctH===0?'var(--s3)':pctH<0.4?'rgba(134,239,172,.25)':pctH<0.8?'rgba(134,239,172,.6)':'var(--sage)';
@@ -2411,7 +2282,231 @@ function renderMorning(){
   if(replyPend)lines.push(`💬 <strong>${replyPend} message${replyPend>1?'s':''}</strong> waiting for your reply.`);
   if(S.habits.length)lines.push(`🌱 <strong>${habDone}/${S.habits.length} habits</strong> done today.`);
   if(!lines.length)lines.push('✨ Nothing urgent. Great time for deep research work.');
-  sec.innerHTML=`<div class="morning-card"><div class="morning-greeting">${actualGreet}${S.settings.name?', '+S.settings.name:''}. ☀️</div><div class="morning-brief">${lines.join(' ')}</div></div>`;
+  const _today=todayKey();
+  const _committedLeft=S.tasks.filter(t=>t.committedToday===_today&&!t.done).length;
+  const _committedDone=S.tasks.filter(t=>t.committedToday===_today&&t.done).length;
+  const _hasPlan=_committedLeft+_committedDone>0;
+  const _pri=S.ui.todayPriority||'';
+  const _planBar=_hasPlan?`<div class="plan-status-bar"><span class="plan-status-txt">📋 ${_committedDone}/${_committedLeft+_committedDone} done${_pri?' · 🎯 '+esc(_pri.substring(0,36)):''}</span><button class="btn btn-ghost btn-sm" onclick="openPlanToday()" style="font-size:.72rem;padding:4px 10px;min-height:0">Edit</button></div>`:'';
+  const _planCta=_hasPlan?'':`<div style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="openPlanToday()" style="font-size:.78rem">📋 Plan your day →</button></div>`;
+  sec.innerHTML=`<div class="morning-card"><div class="morning-greeting">${actualGreet}${S.settings.name?', '+S.settings.name:''}. ☀️</div><div class="morning-brief">${lines.join(' ')}</div>${_planBar}${_planCta}</div>`;
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// WORKLOAD + PLANNING FEATURES
+// ════════════════════════════════════════════════════════════════
+function fmtMins(mins){
+  if(!mins)return'0m';
+  const h=Math.floor(mins/60),m=mins%60;
+  return h?(m?`${h}h ${m}m`:`${h}h`):m+'m';
+}
+
+function renderWorkloadMeter(){
+  const el=$('workload-meter');if(!el)return;
+  const n=now();const today=todayKey();
+  const eod=new Date(n.getFullYear(),n.getMonth(),n.getDate(),23,59,59);
+  const todayTasks=S.tasks.filter(t=>!t.done&&t.due&&new Date(t.due)<=eod);
+  if(!todayTasks.length){el.style.display='none';return}
+  const totalEst=todayTasks.reduce((a,t)=>a+(t.estimatedMins||0),0);
+  const MAX=480;
+  const pct=totalEst?Math.min(100,Math.round(totalEst/MAX*100)):0;
+  const cls=pct>100?'workload-over':pct>75?'workload-warn':'workload-ok';
+  const warn=totalEst>MAX?`⚠ ${fmtMins(totalEst-MAX)} over capacity — defer some tasks`:
+             totalEst>360?'📊 Heavy day — protect focus time':'';
+  const hasCommit=todayTasks.some(t=>t.committedToday===today);
+  el.style.display='';
+  el.innerHTML=`<div class="card card-sm" style="padding:11px 15px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <span style="font-size:.82rem;font-weight:600">📅 Today: </span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:.8rem;color:${pct>100?'var(--coral)':pct>75?'var(--amber)':'var(--sage)'}">${totalEst?fmtMins(totalEst)+' estimated':'no time estimates yet'}</span>
+        <span style="font-size:.72rem;color:var(--text3);margin-left:5px">${todayTasks.length} task${todayTasks.length!==1?'s':''}</span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        ${hasCommit?'<span style="font-size:.7rem;color:var(--sage);font-family:monospace">✓ plan set</span>':''}
+        <button class="btn btn-ghost btn-sm" onclick="openPlanToday()" style="font-size:.74rem;padding:5px 10px;min-height:34px">📋 Plan Day</button>
+        <button class="btn btn-ghost btn-sm" onclick="openShutdown()" style="font-size:.74rem;padding:5px 10px;min-height:34px">🌙 End Day</button>
+      </div>
+    </div>
+    ${totalEst?`<div class="workload-bar-wrap"><div class="workload-bar-fill ${cls}" style="width:${pct}%"></div></div>
+    <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--text3)"><span>${fmtMins(totalEst)} est.</span><span>8h capacity</span></div>`:''}
+    ${warn?`<div style="font-size:.74rem;color:var(--coral);margin-top:5px">${warn}</div>`:''}
+  </div>`;
+}
+
+// ── PLAN TODAY MODAL ──────────────────────────────────────────────────────
+function openPlanToday(){
+  const n=now();const today=todayKey();
+  const eod=new Date(n.getFullYear(),n.getMonth(),n.getDate(),23,59,59);
+  const sod=new Date(n.getFullYear(),n.getMonth(),n.getDate());
+  const allToday=[...new Map([
+    ...S.tasks.filter(t=>!t.done&&t.due&&new Date(t.due)<sod),   // overdue
+    ...S.tasks.filter(t=>!t.done&&t.due&&new Date(t.due)>=sod&&new Date(t.due)<=eod) // today
+  ].map(t=>[t.id,t])).values()];
+  allToday.sort((a,b)=>({high:0,med:1,low:2}[a.priority]||1)-({high:0,med:1,low:2}[b.priority]||1));
+  const body=$('plan-modal-body');
+  const dateStr=n.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'});
+  let html=`<p style="font-size:.82rem;color:var(--text2);margin-bottom:12px"><strong>${dateStr}</strong><br>
+    <span style="font-size:.75rem;color:var(--text3)">Check tasks you're committing to. Realistic beats ambitious.</span></p>`;
+  if(!allToday.length){
+    html+='<div class="empty"><div class="empty-icon">🎉</div><p>Nothing due today! You can pull ahead on goals or rest.</p></div>';
+    body.innerHTML=html;$('plan-modal').classList.add('open');return;
+  }
+  html+='<div id="plan-task-list">';
+  allToday.forEach(t=>{
+    const isOv=t.due&&new Date(t.due)<sod;
+    const checked=t.committedToday===today;
+    const est=t.estimatedMins?`<span class="plan-time-badge">⏱ ${fmtMins(t.estimatedMins)}</span>`:'<span class="plan-time-badge" style="opacity:.35">⏱ ?</span>';
+    html+=`<div class="plan-task-row${checked?' selected':''}" onclick="togglePlanTask(this,'${t.id}')">
+      <input type="checkbox" id="pt-${t.id}" ${checked?'checked':''} onclick="event.stopPropagation();togglePlanTask(this.closest('.plan-task-row'),'${t.id}')"/>
+      <div class="plan-task-title">${isOv?'<span style="color:var(--coral)">⚠ </span>':''}${esc(t.title)}
+        <div style="font-size:.7rem;color:var(--text3);margin-top:1px">${catEmoji(t.cat)} ${t.cat}${t.project?' · '+esc(t.project.substring(0,20)):''}</div>
+      </div>${est}</div>`;
+  });
+  html+=`</div>
+  <div style="margin:12px 0 5px"><div class="plan-cap-label"><span>Committed load</span><span id="plan-cap-total">—</span></div>
+  <div class="workload-bar-wrap"><div class="workload-bar-fill workload-ok" id="plan-cap-fill" style="width:0%"></div></div></div>
+  <div class="plan-total-row plan-total-ok" id="plan-total-msg">Select tasks above to see load estimate</div>
+  <div class="fg" style="margin-top:12px;margin-bottom:0"><label>🎯 #1 priority today?</label>
+  <input id="plan-priority-input" placeholder="e.g. Finish methods section draft…" value="${esc(S.ui.todayPriority||'')}"/></div>`;
+  body.innerHTML=html;
+  $('plan-modal').classList.add('open');
+  updatePlanCapacity();
+}
+
+function togglePlanTask(row,id){
+  const cb=document.getElementById('pt-'+id);if(!cb)return;
+  cb.checked=!cb.checked;row.classList.toggle('selected',cb.checked);
+  updatePlanCapacity();
+}
+
+function updatePlanCapacity(){
+  let total=0;
+  document.querySelectorAll('#plan-task-list .plan-task-row').forEach(row=>{
+    const cb=row.querySelector('input[type=checkbox]');if(!cb||!cb.checked)return;
+    const id=cb.id.replace('pt-','');
+    const t=S.tasks.find(x=>String(x.id)===String(id));
+    if(t&&t.estimatedMins)total+=t.estimatedMins;
+  });
+  const fill=$('plan-cap-fill'),lbl=$('plan-cap-total'),msg=$('plan-total-msg');
+  if(!fill)return;
+  const pct=Math.min(100,Math.round(total/480*100));
+  fill.style.width=pct+'%';
+  fill.className='workload-bar-fill '+(pct>100?'workload-over':pct>75?'workload-warn':'workload-ok');
+  if(lbl)lbl.textContent=total?fmtMins(total)+' / 8h':'—';
+  if(msg){
+    if(!total){msg.textContent='Select tasks above to see load estimate';msg.className='plan-total-row plan-total-ok'}
+    else if(pct<=60){msg.textContent='✓ '+fmtMins(total)+' — solid, achievable plan!';msg.className='plan-total-row plan-total-ok'}
+    else if(pct<=90){msg.textContent='⚡ '+fmtMins(total)+' — full day, stay focused';msg.className='plan-total-row plan-total-warn'}
+    else{msg.textContent='⚠ '+fmtMins(total)+' — over capacity, defer some tasks';msg.className='plan-total-row plan-total-over'}
+  }
+}
+
+function confirmPlanToday(){
+  const today=todayKey();let committed=0;
+  // clear old commits from other days
+  S.tasks.forEach(t=>{if(t.committedToday&&t.committedToday!==today)delete t.committedToday});
+  document.querySelectorAll('#plan-task-list .plan-task-row').forEach(row=>{
+    const cb=row.querySelector('input[type=checkbox]');if(!cb)return;
+    const id=cb.id.replace('pt-','');
+    const t=S.tasks.find(x=>String(x.id)===String(id));if(!t)return;
+    if(cb.checked){t.committedToday=today;committed++}else{delete t.committedToday}
+  });
+  const pri=$('plan-priority-input');if(pri)S.ui.todayPriority=pri.value.trim();
+  save();closeModal('plan-modal');renderTasks();renderMorning();
+  toast('✓ Plan locked in — '+committed+' task'+(committed!==1?'s':'')+' committed. Let\u2019s go! 🚀');
+}
+
+// ── SHUTDOWN RITUAL ───────────────────────────────────────────────────────
+function openShutdown(){
+  const n=now();const today=todayKey();const todayLog=S.habitLogs[today]||{};
+  const doneTasks=S.tasks.filter(t=>t.done&&t.created&&localKey(new Date(t.created))===today).length;
+  const doneHabits=S.habits.filter(h=>todayLog[h.id]).length;
+  const carryOver=S.tasks.filter(t=>!t.done&&t.committedToday===today);
+  const body=$('shutdown-modal-body');
+  const dateStr=n.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'});
+  let html=`<p style="font-size:.8rem;color:var(--text2);margin-bottom:12px">${dateStr}</p>
+  <div class="shutdown-stat"><span class="shutdown-stat-icon">✅</span><div><strong>${doneTasks}</strong> task${doneTasks!==1?'s':''} completed today</div></div>
+  <div class="shutdown-stat"><span class="shutdown-stat-icon">🌱</span><div>Habits: <strong>${doneHabits}/${S.habits.length}</strong> done today</div></div>`;
+  if(carryOver.length){
+    html+=`<div style="margin:10px 0 4px;font-size:.78rem;color:var(--text2);font-weight:600">Carrying over to tomorrow:</div>`;
+    carryOver.slice(0,4).forEach(t=>{html+=`<div style="font-size:.78rem;color:var(--text3);padding:4px 8px;background:var(--s2);border-radius:5px;margin-bottom:4px">→ ${esc(t.title)}</div>`});
+    if(carryOver.length>4)html+=`<div style="font-size:.72rem;color:var(--text3);padding-left:8px">+${carryOver.length-4} more…</div>`;
+  }
+  html+=`<div class="fg" style="margin-top:14px;margin-bottom:10px"><label>📝 What went well today? <span style="color:var(--text3);font-weight:400">(optional)</span></label>
+  <textarea id="shutdown-reflection" style="min-height:64px" placeholder="Wins, insights, what to carry forward…"></textarea></div>
+  <div class="fg" style="margin-bottom:0"><label>⚡ Energy for tomorrow?</label>
+  <div class="energy-row" id="shutdown-energy-row">
+    <button class="energy-btn" onclick="pickShutdownEnergy(1,this)">😴 Low</button>
+    <button class="energy-btn" onclick="pickShutdownEnergy(2,this)">😐 Tired</button>
+    <button class="energy-btn energy-btn picked" onclick="pickShutdownEnergy(3,this)">😊 OK</button>
+    <button class="energy-btn" onclick="pickShutdownEnergy(4,this)">💪 Good</button>
+    <button class="energy-btn" onclick="pickShutdownEnergy(5,this)">🔥 Great</button>
+  </div></div>`;
+  window._shutdownEnergy=3;
+  body.innerHTML=html;$('shutdown-modal').classList.add('open');
+}
+
+function pickShutdownEnergy(val,el){
+  window._shutdownEnergy=val;
+  document.querySelectorAll('#shutdown-energy-row .energy-btn').forEach(b=>b.classList.remove('picked'));
+  el.classList.add('picked');
+}
+
+function confirmShutdown(){
+  const today=todayKey();
+  const refl=$('shutdown-reflection')?.value.trim()||'';
+  if(!S.shutdownLogs)S.shutdownLogs=[];
+  S.shutdownLogs.push({date:today,reflection:refl,energy:window._shutdownEnergy||3,ts:Date.now()});
+  // clear today's commits — fresh start tomorrow
+  S.tasks.forEach(t=>{if(t.committedToday===today)delete t.committedToday});
+  S.ui.todayPriority='';
+  save();closeModal('shutdown-modal');renderTasks();renderMorning();
+  toast('🌙 Day closed. Great work — rest well! ✨',5000);
+}
+
+// ── ENERGY-AWARE TASK SUGGESTIONS ────────────────────────────────────────
+function suggestTasksForEnergy(emotion){
+  const el=$('energy-suggestions');if(!el)return;
+  const pending=S.tasks.filter(t=>!t.done);if(!pending.length){el.style.display='none';return}
+  const n=now();
+  const short=pending.filter(t=>t.estimatedMins>0&&t.estimatedMins<=30);
+  const high=pending.filter(t=>t.priority==='high');
+  const low=pending.filter(t=>t.priority==='low');
+  const withImpl=pending.filter(t=>t.implIntention&&t.implIntention.trim());
+  const todayDue=pending.filter(t=>t.due&&new Date(t.due).toDateString()===n.toDateString());
+  const uniq=arr=>[...new Map(arr.map(t=>[t.id,t])).values()];
+  let picked=[];
+  if(emotion.includes('Focused'))picked=uniq([...high,...todayDue]).slice(0,3);
+  else if(emotion.includes('Anxious'))picked=uniq([...withImpl,...short,...high]).slice(0,3);
+  else if(emotion.includes('Overwhelmed'))picked=uniq([...short,...low]).slice(0,3);
+  else if(emotion.includes('Tired'))picked=uniq([...low,...short]).slice(0,3);
+  else if(emotion.includes('Bored'))picked=uniq([...pending.filter(t=>t.priority==='med'),...high]).slice(0,3);
+  else if(emotion.includes('Distracted'))picked=uniq([...todayDue,...short]).slice(0,3);
+  else picked=high.slice(0,3);
+  if(!picked.length){el.style.display='none';return}
+  const lbl={
+    'Focused 🎯':'High-priority tasks for your flow state:',
+    'Anxious 😟':'Tasks with a clear starting point:',
+    'Overwhelmed 😤':'Quick wins to build momentum:',
+    'Tired 😴':'Low-effort tasks for low energy:',
+    'Bored 😑':'Engaging tasks to spark motivation:',
+    'Distracted 🦋':'Today\u2019s anchor tasks to re-focus:'
+  }[emotion]||'Suggested tasks for your state:';
+  let html=`<div class="energy-suggest-lbl">${lbl}</div>`;
+  picked.forEach(t=>{
+    const est=t.estimatedMins?` <span style="color:var(--text3);font-size:.7rem">· ⏱${fmtMins(t.estimatedMins)}</span>`:'';
+    html+=`<button class="suggest-task-btn" onclick="selectSuggestedTask('${t.id}')">${esc(t.title.substring(0,50))}${t.title.length>50?'…':''}${est}</button>`;
+  });
+  el.innerHTML=html;el.style.display='block';
+}
+
+function selectSuggestedTask(id){
+  const sel=$('pomo-task-sel');if(!sel)return;
+  sel.value=id;
+  const t=S.tasks.find(x=>String(x.id)===String(id));
+  toast('✓ '+(t?'"'+t.title.substring(0,30)+(t.title.length>30?'…':'')+'"':' Task')+' selected for session');
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -2440,7 +2535,6 @@ function loadSettings(){
     setSyncStatus('✓ Sync active — code: '+S.settings.syncId.substring(0,8)+'…','var(--sage)');
   }
   renderCatManager();
-  updateSourceBadges();
 }
 
 function saveApiKey(){S.settings.apiKey=$('api-key-input').value.trim();save();updateAiDots();toast('✓ API key saved')}
@@ -2510,9 +2604,9 @@ function closeModal(id){$(id).classList.remove('open')}
 // ════════════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded',()=>{
   load();
+  // migrate old data: ensure categories exist
   if(!S.categories||!S.categories.length)S.categories=[{id:'research',name:'Research',emoji:'🔬'},{id:'startup',name:'Startup',emoji:'🚀'},{id:'personal',name:'Personal',emoji:'🌿'},{id:'admin',name:'Admin',emoji:'📋'}];
   handleGmailCallback();
-  handleGoogleCalToken();
   updatePomoDisplay();
   renderCatFilters();
   populateGoalSelects();
@@ -2521,15 +2615,17 @@ window.addEventListener('DOMContentLoaded',()=>{
   renderMorning();
   updateReplyBadge();
   updateAiDots();
-  updateSourceBadges();
   loadSettings();
   renderScienceTip();
-  // Restore cal token from saved gmailToken
-  if(S.settings.gmailToken)_calToken=S.settings.gmailToken;
+  renderWorkloadMeter();
+  // Tab from URL
   const urlTab=new URLSearchParams(location.search).get('tab');
   if(urlTab)go(urlTab);
+  // Schedule all reminders
   S.tasks.forEach(scheduleReminder);
+  // Reply check every 30min
   setInterval(()=>{checkReplies();updateReplyBadge()},30*60000);
+  // Service worker
   if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 });
 
@@ -2669,186 +2765,6 @@ async function refreshAllMessages(){
   if(S.settings.slackToken&&(S.settings.slackChannels||[]).some(c=>c.selected))await fetchSlackMessages();
   if(S.settings.discordToken&&S.settings.discordChannelIds)await fetchDiscordMessages();
   if(S.settings.gmailToken)await fetchGmailMessages();
-}
-
-// ════════════════════════════════════════════════════════════════
-// GOOGLE CALENDAR
-// ════════════════════════════════════════════════════════════════
-let _calToken=null;
-
-function connectGoogleCal(){
-  const clientId=S.settings.gmailClientId||$('gmail-client-id')?.value.trim();
-  if(!clientId){toast('Enter your Google OAuth Client ID in Platform Setup first');return}
-  const scope=encodeURIComponent('https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.readonly');
-  const redirect=encodeURIComponent(location.href.split('?')[0]);
-  const url=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirect}&response_type=token&scope=${scope}&prompt=consent`;
-  location.href=url;
-}
-
-function handleGoogleCalToken(){
-  const hash=location.hash;
-  if(!hash.includes('access_token'))return;
-  const params=new URLSearchParams(hash.slice(1));
-  const token=params.get('access_token');
-  if(token){
-    _calToken=token;
-    S.settings.gmailToken=token;
-    save();
-    history.replaceState(null,'',location.pathname+location.search);
-    toast('✓ Google connected — fetching calendar…');
-    fetchCalendarEvents();
-    updateSourceBadges();
-  }
-}
-
-async function fetchCalendarEvents(){
-  const token=_calToken||S.settings.gmailToken;
-  if(!token){connectGoogleCal();return}
-  const btn=$('cal-fetch-btn');if(btn)btn.textContent='…';
-  const cont=$('cal-events');if(!cont)return;
-  try{
-    const today=new Date();today.setHours(0,0,0,0);
-    const tomorrow=new Date(today);tomorrow.setDate(today.getDate()+1);
-    const r=await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${today.toISOString()}&timeMax=${tomorrow.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=15`,
-      {headers:{Authorization:`Bearer ${token}`}}
-    );
-    if(r.status===401){S.settings.gmailToken='';_calToken=null;save();cont.innerHTML='<p style="font-size:.78rem;color:var(--coral)">Session expired. <button class="btn btn-teal btn-sm" onclick="connectGoogleCal()">Reconnect</button></p>';return}
-    const data=await r.json();
-    const events=data.items||[];
-    if(!events.length){cont.innerHTML='<p style="font-size:.78rem;color:var(--text3)">No events today 🎉</p>';return}
-    cont.innerHTML='';
-    let busySlots=[];
-    events.forEach(ev=>{
-      const start=ev.start?.dateTime?new Date(ev.start.dateTime):null;
-      const end=ev.end?.dateTime?new Date(ev.end.dateTime):null;
-      const timeStr=start?start.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+
-        (end?' – '+end.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):''):'All day';
-      const isBusy=ev.status!=='cancelled'&&start;
-      const div=document.createElement('div');
-      div.className='cal-event'+(isBusy?' busy':'');
-      div.innerHTML=`<span class="cal-time">${timeStr}</span><span class="cal-title">${esc(ev.summary||'Untitled')}</span>`;
-      cont.appendChild(div);
-      if(isBusy&&start&&end)busySlots.push({start,end});
-    });
-    // Show free blocks
-    renderFreeBlocks(busySlots,cont);
-  }catch(e){cont.innerHTML=`<p style="font-size:.78rem;color:var(--coral)">Calendar error: ${e.message}</p>`}
-  if(btn)btn.textContent='Sync';
-}
-
-function renderFreeBlocks(busySlots,cont){
-  if(!busySlots.length)return;
-  const now=new Date();const endOfDay=new Date();endOfDay.setHours(21,0,0,0);
-  let cursor=now>new Date().setHours(8,0,0,0)?now:new Date(new Date().setHours(8,0,0,0));
-  const sorted=busySlots.sort((a,b)=>a.start-b.start);
-  const freeBlocks=[];
-  for(const slot of sorted){
-    if(slot.start>cursor){
-      const mins=Math.round((slot.start-cursor)/60000);
-      if(mins>=25)freeBlocks.push({start:new Date(cursor),end:slot.start,mins});
-    }
-    if(slot.end>cursor)cursor=slot.end;
-  }
-  if(cursor<endOfDay){
-    const mins=Math.round((endOfDay-cursor)/60000);
-    if(mins>=25)freeBlocks.push({start:new Date(cursor),end:endOfDay,mins});
-  }
-  if(!freeBlocks.length)return;
-  const hdr=document.createElement('div');
-  hdr.style.cssText='font-family:var(--mono);font-size:.58rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin:10px 0 5px';
-  hdr.textContent='Free blocks';cont.appendChild(hdr);
-  freeBlocks.slice(0,3).forEach(b=>{
-    const label=`${b.start.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} · ${b.mins>=60?Math.floor(b.mins/60)+'h '+(b.mins%60?b.mins%60+'m':''):b.mins+'m'} free`;
-    const div=document.createElement('div');div.className='cal-free-slot';
-    div.textContent='🟢 '+label+' — tap to block for focus';
-    div.onclick=()=>scheduleCalFocusBlock(b);
-    cont.appendChild(div);
-  });
-}
-
-function scheduleCalFocusBlock(block){
-  const mins=Math.min(block.mins,50);
-  toast(`🎯 ${mins}m focus block — ${block.start.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`);
-}
-
-// ════════════════════════════════════════════════════════════════
-// VOICE CAPTURE
-// ════════════════════════════════════════════════════════════════
-let _recognition=null,_isRecording=false;
-
-function toggleVoiceCapture(){
-  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
-    toast('Voice input not supported in this browser — try Chrome');return;
-  }
-  if(_isRecording){stopVoice();return}
-  startVoice();
-}
-
-function startVoice(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  _recognition=new SR();
-  _recognition.continuous=false;_recognition.interimResults=true;_recognition.lang='en-US';
-  const btn=$('voice-btn');if(btn)btn.classList.add('recording');
-  _isRecording=true;
-  _recognition.onresult=e=>{
-    const transcript=Array.from(e.results).map(r=>r[0].transcript).join('');
-    const qi=$('quick-input');if(qi)qi.value=transcript;
-  };
-  _recognition.onend=()=>{
-    stopVoice();
-    // auto-parse if we got something
-    const qi=$('quick-input');
-    if(qi?.value.trim())quickCapture();
-  };
-  _recognition.onerror=e=>{stopVoice();toast('Voice error: '+e.error)};
-  _recognition.start();
-  toast('🎙 Listening…');
-}
-
-function stopVoice(){
-  _isRecording=false;
-  const btn=$('voice-btn');if(btn)btn.classList.remove('recording');
-  try{_recognition?.stop()}catch(e){}
-}
-
-// ════════════════════════════════════════════════════════════════
-// SOURCE BADGES + SMART FETCH
-// ════════════════════════════════════════════════════════════════
-function updateSourceBadges(){
-  const sb=$('slack-badge');const gb=$('gmail-badge');const db=$('discord-badge');
-  if(sb){
-    if(S.settings.slackToken){sb.textContent='connected';sb.className='mcp-badge connected'}
-    else{sb.textContent='not set up';sb.className='mcp-badge disconnected'}
-  }
-  if(gb){
-    if(S.settings.gmailToken||_calToken){gb.textContent='connected';gb.className='mcp-badge connected'}
-    else{gb.textContent='not set up';gb.className='mcp-badge disconnected'}
-  }
-  if(db){
-    if(S.settings.discordToken){db.textContent='connected';db.className='mcp-badge connected'}
-    else{db.textContent='not set up';db.className='mcp-badge disconnected'}
-  }
-}
-
-async function triggerSourceFetch(source,btn){
-  btn.style.opacity='.5';
-  const status=$('msg-fetch-status');
-  try{
-    if(source==='slack'){
-      if(!S.settings.slackToken){toast('Set up Slack token in Platform Setup below');btn.style.opacity='';return}
-      if(status)status.textContent='Fetching Slack…';
-      await fetchSlackMessages();
-    }else if(source==='gmail'){
-      if(!S.settings.gmailToken&&!_calToken){connectGmail();btn.style.opacity='';return}
-      if(status)status.textContent='Fetching Gmail…';
-      await fetchGmailMessages();
-    }else if(source==='discord'){
-      if(!S.settings.discordToken){toast('Set up Discord token in Platform Setup below');btn.style.opacity='';return}
-      if(status)status.textContent='Fetching Discord…';
-      await fetchDiscordMessages();
-    }
-  }finally{btn.style.opacity='';if(status)setTimeout(()=>status.textContent='',3000)}
 }
 
 // ════════════════════════════════════════════════════════════════
